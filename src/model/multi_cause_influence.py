@@ -6,6 +6,8 @@ import argparse
 from scipy.stats import truncnorm, poisson, gamma
 from sklearn.metrics import mean_squared_error as mse
 
+from functools import reduce
+
 
 class CausalInfluenceModel:
     # TODO:
@@ -14,7 +16,7 @@ class CausalInfluenceModel:
     # (ii) the A at the current timestep (logic being that citations are a good proxy for influence already). For the latter,
     # presumably we would need to allow observation of the network to permit held-out influence estimation, but this would still be
     # legitimate to some degree if we didn't allow observation of the topics themselves.
-    # -- Allow both
+    # -- [DONE] Allow both
     # (i) time-homogeneous params (but independent observations at each timestep), which thus use all data for each param
     # -- assume that can just use eqns below but sum over t as well as whatever else, and
     # (ii) time-varying params, that only use the present timestep -- means held-out data won't have available params, but can
@@ -22,6 +24,10 @@ class CausalInfluenceModel:
     # -- Check that DSBMM is approximately rendering citations and topics independent given the groups, as this is necessary
     # for the causal model to be valid.
     # -- Change all below from sparse to ndarray as v minimal savings anyway
+    # - ahh incorrect -- any dots w the Ys or A will be sparse and also
+    # more importantly will prevent calculating all the other
+    # multipliers, so save a lot of time if these are very sparse
+    # -- Also means can't use npnewaxis for Y_t or A_t, nor einsum
     def __init__(
         self,
         n_components=100,
@@ -246,7 +252,7 @@ class CausalInfluenceModel:
             self.gamma_term = np.exp(self.E_log_gamma)
             # NB gamma, Z are dense in N,M,T so nothing to be done to keep sparse here
             if self.time_homog:
-                preference_component = np.einsum("itq,mq->imt", Z, self.gamma_term)
+                preference_component = np.einsum("mq,itq->imt", self.gamma_term, Z)
             else:
                 preference_component = np.einsum("mtq,itq->imt", self.gamma_term, Z)
 
@@ -267,7 +273,7 @@ class CausalInfluenceModel:
             self.alpha_term = np.exp(self.E_log_alpha)
             if self.time_homog:
                 preference_component = np.einsum(
-                    "itq,mq->imt", Z, self.gamma_term
+                    "mq,itq->imt", self.gamma_term, Z
                 ) + np.einsum("iq,mtq->imt", self.alpha_term, W)
             else:
                 preference_component = np.einsum(
@@ -351,39 +357,78 @@ class CausalInfluenceModel:
         return poisson.logpmf(Y, rate).sum()
 
     def _update_gamma(self, Y, Z):
-        norm_obs = Y / self.normaliser
+        norm_obs = [Y_t / self.normaliser for Y_t in Y]
         # want (\sum_t) \sum_i gamma_term_{mtq} z_{itq} y_{im}^t
         if self.time_homog:
-            expected_aux = self.gamma_term * np.einsum("itq,imt->mq", Z, norm_obs)
+            expected_aux = self.gamma_term * reduce(
+                lambda x, y: x + y,
+                [
+                    (nrm_ob_t.T @ z_t)
+                    for nrm_ob_t, z_t in zip(norm_obs, Z.transpose(1, 0, 2))
+                ],
+            )
         else:
-            expected_aux = self.gamma_term * np.einsum("itq,imt->mtq", Z, norm_obs)
+            expected_aux = self.gamma_term * np.stack(
+                [
+                    (nrm_ob_t.T @ z_t)
+                    for nrm_ob_t, z_t in zip(
+                        norm_obs,
+                        Z.transpose(1, 0, 2),
+                    )
+                ],
+                axis=1,
+            )
         self.gamma_shape = self.topic_shp + expected_aux
         self.E_log_gamma, self.E_gamma = self._compute_expectations(
             self.gamma_shape, self.gamma_rates
         )
 
     def _update_alpha(self, Y, W):
-        norm_obs = Y / self.normaliser
+        norm_obs = [Y_t / self.normaliser for Y_t in Y]
         # want (\sum_t) \sum_m alpha_term_{itq} w_{mtq} y_{im}^t
         if self.time_homog:
-            expected_aux = self.alpha_term * np.einsum("mtq,imt->iq", W, norm_obs)
+            expected_aux = self.alpha_term * reduce(
+                lambda x, y: x + y,
+                [
+                    (nrm_ob_t @ w_t)
+                    for nrm_ob_t, w_t in zip(norm_obs, W.transpose(1, 0, 2))
+                ],
+            )
         else:
-            expected_aux = self.alpha_term * np.einsum("mtq,imt->itq", W, norm_obs)
+            expected_aux = self.alpha_term * np.stack(
+                [
+                    (nrm_ob_t @ w_t)
+                    for nrm_ob_t, w_t in zip(
+                        norm_obs,
+                        W.transpose(1, 0, 2),
+                    )
+                ],
+                axis=1,
+            )
         self.alpha_shape = self.au_shp + expected_aux
         self.E_log_alpha, self.E_alpha = self._compute_expectations(
             self.alpha_shape, self.alpha_rates
         )
 
     def _update_beta(self, Y, Y_past, A):
-        norm_obs = Y / self.normaliser
+        norm_obs = [Y_t / self.normaliser for Y_t in Y]
         # want (\sum_t) beta_term_{i,t-1} \sum_{j,m} y_{jm}^t a_{ji,t-1} y_{im}^{t-1}
         if self.time_homog:
-            expected_aux = self.beta_term * np.einsum(
-                "jmt,jit,imt->i", norm_obs, A, Y_past, optimize=True
+            expected_aux = self.beta_term * reduce(
+                lambda x, y: x + y,
+                [
+                    ytm1 @ (nrm_ob_t.T @ A_t.T)
+                    for nrm_ob_t, A_t, ytm1 in zip(norm_obs, A, Y_past)
+                ],
             )
+
         else:
-            expected_aux = self.beta_term * np.einsum(
-                "jmt,jit,imt->it", norm_obs, A, Y_past, optimize=True
+            expected_aux = self.beta_term * np.stack(
+                [
+                    ytm1 @ (nrm_ob_t.T @ A_t.T)
+                    for nrm_ob_t, A_t, ytm1 in zip(norm_obs, A, Y_past)
+                ],
+                axis=1,
             )
         self.beta_shape = self.inf_shp + expected_aux
         self.E_log_beta, self.E_beta = self._compute_expectations(
@@ -391,23 +436,35 @@ class CausalInfluenceModel:
         )
 
     def fit(self, Y, A, Z, W, Y_past):
-        N = Y.shape[0]
-        M = Y.shape[1]
-        # K = Z.shape[1]
-        K = self.n_components
-        P = self.n_exog_components
+        T = len(Y)
+        N, M = Y[0].shape
+        T += 1
 
-        self._init_beta(N)
+        # K = Z.shape[1]
+        Q = self.n_components
+        K = self.n_exog_components
+        try:
+            assert Q == Z.shape[-1]
+            assert K == W.shape[-1]
+        except AssertionError:
+            raise ValueError(
+                """
+                Dimensions of provided substitutes do not match one 
+                or more specified number of components
+                """
+            )
+
+        self._init_beta(N, T)
 
         if self.mode == "network_preferences":
-            self._init_gamma(M, K)
+            self._init_gamma(M, Q, T)
 
         elif self.mode == "topic":
-            self._init_alpha(N, P)
+            self._init_alpha(N, K, T)
 
         elif self.mode == "full":
-            self._init_gamma(M, K)
-            self._init_alpha(N, P)
+            self._init_gamma(M, Q, T)
+            self._init_alpha(N, K, T)
 
         self._init_rates(A, Y_past, Z, W, M, N)
         self._init_expectations()
@@ -449,30 +506,35 @@ def get_set_overlap(Beta_p, Beta, k=20):
 
 if __name__ == "__main__":
     N = 1000
-    K = 10
+    Q = 10
+    K = Q
     M = 1000
     T = 5
 
     # TODO: finish fully synthetic data gen (?)
-    Z = gamma.rvs(0.5, scale=0.1, size=(N, K))
-    Gamma = gamma.rvs(0.5, scale=0.1, size=(M, K))
+    Z = gamma.rvs(0.5, scale=0.1, size=(N, Q))
+    Gamma = gamma.rvs(0.5, scale=0.1, size=(M, Q))
     Alpha = gamma.rvs(0.5, scale=0.1, size=(N, K))
     W = gamma.rvs(0.5, scale=0.1, size=(M, K))
     Beta = gamma.rvs(0.005, scale=10.0, size=N)
 
+    # now need to simulate T-1 As
     A = poisson.rvs(Z.dot(Z.T))
     non_id = 1 - np.identity(N)
     A = A * non_id
 
     rate_topic = Alpha.dot(W.T)
     rate_pref = Z.dot(Gamma.T)
-    Y_past = poisson.rvs(rate_topic + rate_pref)
-    rate_inf = sparse.csr_matrix(Beta * A).dot(sparse.csr_matrix(Y_past))
-    Y = poisson.rvs(rate_pref + rate_inf + rate_topic)
-    print("Sparsity of data matrices:", A.mean(), Y_past.mean(), Y.mean())
+    # Y_past = poisson.rvs(rate_topic + rate_pref)
+    Y_0 = poisson.rvs(rate_topic + rate_pref)  # sample initial time
+    rate_inf = sparse.csr_array(Beta * A).dot(sparse.csr_array(Y_0))
+    Y = poisson.rvs(rate_pref + rate_inf + rate_topic)  # sample remainder
+    # Y_past = Y[...,:-1].copy()
+    # Y = Y[...,1:]
+    print("Sparsity of data matrices:", A.mean(), Y[..., :-1].mean(), Y[..., 1:].mean())
 
     pmf = CausalInfluenceModel(n_components=K, n_exog_components=K, verbose=True)
-    pmf.fit(Y, A, Z, W, Y_past)
+    pmf.fit(Y[..., 1:], A, Z, W, Y[..., :-1])
 
     print("Beta overlap:", get_set_overlap(pmf.E_beta, Beta))
     print("MSE Beta:", mse(Beta, pmf.E_beta))
