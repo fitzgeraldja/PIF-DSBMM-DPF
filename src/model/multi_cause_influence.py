@@ -6,6 +6,7 @@ import argparse
 from scipy.stats import truncnorm, poisson, gamma
 from sklearn.metrics import mean_squared_error as mse
 
+import tqdm
 from functools import reduce
 
 
@@ -39,7 +40,7 @@ class CausalInfluenceModel:
         model_mode="full",
         use_current_A=False,
         time_homog=False,
-        **kwargs
+        **kwargs,
     ):
         self.n_components = n_components
         self.n_exog_components = n_exog_components
@@ -474,7 +475,7 @@ class CausalInfluenceModel:
 
         for i in range(self.max_iter):
             if self.verbose:
-                print("Bound:", bd)
+                tqdm.write(f"Bound: {bd}")
                 sys.stdout.flush()
 
             old_bd = bd
