@@ -1,0 +1,529 @@
+import os
+import numpy as np
+import pandas as pd
+from scipy.sparse import csr_array
+import pickle
+from scipy.stats import gamma, poisson, bernoulli
+from scipy.special import expit
+
+from functools import reduce
+
+import sys
+import tqdm
+
+from utils import sample_simple_markov
+
+
+"""
+This script generates semi-synthetic data from real citation and author 
+profile data. 
+
+Data reqs: 
+
+datapath assumed to be path to a folder containing 
+
+edgelist file
+- npz format, file named 'citation_links.npz', and array named 'edge_list'
+- first col idx of author sending citation, 
+- second col idx of author receiving citation, 
+- third col timestep at which this happens
+
+au_profs file
+- pickled pandas df, named 'au_profs.pkl'
+- columns are 'auid_idx', 'windowed_year', 'region', 'career_age'
+- no duplicate (auid,windowed_year) combinations
+
+There should be one more timestep in the au_profs file than the edgelist file,
+and up to the final timestep they should either match, or it is assumed that 
+they can be paired according to their rank.
+
+Important default choices in semi-synthetic data generation:
+- Perform snowball sampling on aggregated adjacency matrix to subsample authors
+  to more manageable size (by default = 3000)
+- Choose to make random topic embeddings w.r.t. covariate 1
+  (author region by default) stable over time, so each region 
+  has stable topics in which it 'specialises' - sample randomly at first timestep
+  then use these values throughout
+- Other random covariate by default follows simple Markov process on given
+  number of categories, where at time t an author/topic is either assigned to 
+  their previous category with probability eta (default = 0.8) else randomly
+  chooses out of all categories
+- Assume influence at time t realistically should depend to some degree on 
+  influence at previous timestep -- in real data this will be observed via 
+  the topic themselves, but as we are generating these here we enforce this 
+  artificially by imposing that 
+    p(infl at t | infl at t-1) = infl at t-1 + Norm(0,s.d.)
+  where by default s.d. = 0.05 * mean influence (i.e. fluctuations ~5%), 
+  then thresholding to enforce that influence is always positive
+- If an author is never cited in a time period, their influence is set to one
+
+- Added in extra flags to control some extra features: 
+  --rand_cv_mode \in ["non-markov","markov","stable"], default "markov"
+  --rand_cv_eta = float \in [0,1], default 0.8
+  --influence_mode \in ["gp","non-gp"], default "gp"
+  --influence_gpvar = float \in [0,1], default 0.05 (av. percentage of mean infl)
+- Lowered default num topics to be simulated to 1000 from 3000, as 
+  closer to real data    
+- make_multi_covariate_simulation now only return Y rather than Y,Y_past,
+  and this is a list length T of csr_arrays
+"""
+
+
+class CitationSimulator:
+    # TODO:
+    # -- Allow either
+    # (i) Independent random covariates at each timestep, or
+    # (ii) Sample the random covariates according to some Markov chain
+    # NB even in case (i), the country indicators will still have
+    # some temporal correlation, so will choose to only sample the
+    # corresponding random covariates for topics once, then use these
+    # throughout -- the actual confounders are only noisy observations
+    # of these anyway so shouldn't be a major issue.
+    # --
+    def __init__(
+        self,
+        datapath="../dat/citation/regional_subset",
+        subnetwork_size=3000,
+        influence_shp=0.005,
+        num_topics=1000,
+        covar_1="region_categorical",
+        covar_2="random",
+        covar_2_num_cats=5,
+        **kwargs
+    ):
+        self.datapath = datapath
+        self.subnetwork_size = subnetwork_size
+        self.influence_shp = influence_shp
+        self.num_topics = num_topics
+        self.covar_1 = covar_1
+        self.covar_2 = covar_2
+        self.covar_2_num_cats = covar_2_num_cats
+
+        self.parse_args(**kwargs)
+
+    def parse_args(self, **kwargs):
+        self.random_seed = int(kwargs.get("seed", 42))
+        self.do_sensitivity = bool(kwargs.get("do_sensitivity", False))
+        self.sensitivity_parameter = float(kwargs.get("sensitivity_parameter", 1.0))
+        self.error_rate = float(kwargs.get("error_rate", 0.3))
+        self.rand_cv_mode = kwargs.get("rand_cv_mode", "markov")
+        self.rand_cv_eta = float(kwargs.get("rand_cv_eta", 0.8))
+        self.influence_mode = kwargs.get("influence_mode", "gp")
+        # assume s.d. of change in influence between timesteps is
+        # ~5% of mean influence
+        self.influence_gpvar = float(kwargs.get("influence_gpvar", 0.05))
+        self.influence_gpvar = self.influence_shp * 10 * self.influence_gpvar
+        np.random.seed(self.random_seed)
+
+    def snowball_sample(self):
+        """Snowball sample over all timestep adjacencies
+        -- at each iteration, starting from a random root author,
+        follow outward citations until reach desired subsample
+        size.
+
+        :return: sampled_aus, subset of aus to use in experiment
+        :rtype: np.ndarray
+        """
+        sampled_aus = set()
+        aus = np.arange(self.N)
+        np.random.shuffle(aus)
+        u_iter = 0
+        while len(sampled_aus) < self.subnetwork_size:
+            au = aus[u_iter]
+            # get all connected aus to this au in any timeslice
+            conn_aus = reduce(
+                lambda x, y: np.union1d(x, y),
+                [np.flatnonzero(self.A[t][u_iter, :]) for t in range(self.T - 1)],
+            )
+            sampled_aus.add(au)
+            sampled_aus |= set(list(conn_aus))
+            if conn_aus.shape[0] > 2:
+                u_iter = np.random.choice(conn_aus)
+            else:
+                u_iter += 1
+        return np.array(list(sampled_aus))
+
+    def load_edgelist(self):
+        arr = np.load(os.path.join(self.datapath, "citation_links.npz"))
+        self.edgelist = arr["edge_list"]
+
+    def load_au_profs(self):
+        """Load author profiles -- pandas df with columns
+            'auid_idx' (author id idx, int
+                        -- must match w corresponding idx
+                        used in edgelist file),
+            'windowed_year' (int for starting year of timeslice
+                             for author info contained in each row),
+            'region' (region to which author is affiliated most often
+                      at that timestep),
+            'career_age' (duration for which author has been publishing)
+        with no duplicate (auid,windowed_year) combinations.
+        """
+        with open(os.path.join(self.datapath, "au_profs.pkl"), "rb") as f:
+            self.au_profs = pickle.load(f)
+        self.au_profs["region_categorical"] = pd.Categorical(self.au_profs.region).codes
+        code = {
+            r: i for (i, r) in enumerate(np.unique(self.au_profs["region_categorical"]))
+        }
+        self.au_profs["region_categorical"] = self.au_profs["region_categorical"].apply(
+            lambda x: code[x]
+        )
+        age_bins = np.arange(0, 100, step=5)
+        self.au_profs["career_age_binned"] = np.digitize(
+            self.au_profs.career_age.values, age_bins
+        )
+        self.au_profs["career_age_binned"] -= 1
+        self.df_ts = np.unique(self.au_profs.windowed_year.values, dtype=int)
+        self.uids = {
+            t: self.au_profs.auid_idx[self.au_profs.windowed_year == t]
+            for t in self.df_ts
+        }
+        if not np.all(self.df_ts[:-1] == self.timesteps):
+            try:
+                assert len(self.df_ts) == self.T
+                tqdm.write(
+                    """Timesteps in author profiles and edgelist do not match, 
+                    but there are the correct number of each."""
+                )
+                tqdm.write("Assuming can match on order...")
+            except AssertionError:
+                raise ValueError(
+                    "Timesteps in edgelist and author profiles do not match."
+                )
+
+    def make_adj_matrix(self):
+        """Construct adjacency matrix at each timestep from provided edgelist.
+        Given causal model specified, assume pass one fewer timestep worth of
+        edge information than have author profiles for.
+        """
+        time_inds = self.edgelist[:, 2]
+        self.timesteps = np.unique(time_inds)
+        self.T = len(self.timesteps) + 1
+        row_inds = [self.edgelist[time_inds == t, 0] for t in self.timesteps]
+        col_inds = [self.edgelist[time_inds == t, 1] for t in self.timesteps]
+        self.N = self.edgelist[:, :2].max() + 1
+        data = [np.ones(row_inds[t].shape[0]) for t in range(self.T - 1)]
+        # row_inds.shape, col_inds.shape, data.shape
+        self.A = [
+            csr_array((data[t], (row_inds[t], col_inds[t])), shape=(self.N, self.N))
+            for t in range(self.T - 1)
+        ]
+        # self.A = A.toarray()
+
+    def get_one_hot_covariate_encoding(self, covar):
+        """Return one-hot encoding of specified covariate for each timestep,
+        in shape (N,T,num_cats)
+
+        :param covar: chosen covariate -- name of column in au_profs df,
+                      which must be a categorical index - this is automatically
+                      generated for region and career_age, suitably named
+                      region_categorical and career_age_binned resp.
+        :type covar: str
+        :return: one_hot_encoding, shape (N,T,num_cats)
+        :rtype: np.ndarray
+        """
+        categories = np.unique(self.au_profs[covar])
+        num_cats = len(categories)
+        one_hot_encoding = np.zeros((self.aus.shape[0], self.T, num_cats))
+        for t, year in enumerate(self.df_ts):
+            data = self.au_profs.loc[self.uids[year].isin(self.aus).index, covar].values
+            u_idx = np.arange(self.aus.shape[0])
+            # not guaranteed that every author that gets cited has a profile
+            # available at every timestep, so must take subset
+            pres_u = u_idx[np.isin(self.aus, self.uids[year].values)]
+            one_hot_encoding[pres_u, t, data] = 1
+        return one_hot_encoding
+
+    def sample_random_covariate(
+        self, num_categories: int, num_samples: int, mode="non-markov", eta=0.8
+    ):
+        """Generate random covariate values for each author at each timestep.
+        If mode == 'non-markov', each timestep is uniformly random sampled over
+        the number of categories specified.
+
+        If mode == 'markov', the covariate values at the first timestep is
+        uniformly randomly sampled, then subsequent timesteps are sampled
+        sequentially, where the probability of an author being assigned to
+        the same category as the previous timestep is eta, else the category
+        is uniformly randomly sampled, i.e.
+
+            p(covariate_t = covariate_t-1) = eta + (1-eta)/num_categories,
+            p(covariate_t = cv != covariate_t-1) = (1-eta)/num_categories.
+
+        Finally if mode == 'stable', the covariate values at the first
+        timestep are uniformly sampled, then these values are used for all
+        subsequent times.
+
+        :param num_categories: Number of categories to sample
+        :type num_categories: int
+        :param num_samples: Number of samples at each timestep
+        :type num_samples: int
+        :param mode: Mode to generate random series of covariates.
+                     Options are "non-markov", "markov", and "stable",
+                     as described above - defaults to "non-markov"
+        :type mode: str, optional
+        :param eta: probability of assigning same category as prev timestep
+                    if mode=='markov', defaults to 0.7
+        :type eta: float, optional
+        :return: one-hot encoding of sampled covariates,
+                 shape (num_samples, T, num_categories)
+        :rtype: np.ndarray
+        """
+        one_hot_encoding = np.zeros((num_samples, self.T, num_categories))
+        if mode == "non-markov":
+            for t in range(self.T):
+                one_hot_encoding[
+                    np.arange(num_samples),
+                    t,
+                    np.random.randint(0, num_categories, size=num_samples),
+                ] = 1
+        elif mode == "markov":
+            one_hot_encoding = sample_simple_markov(
+                num_samples, self.T, num_categories, eta, onehot=True
+            )
+        elif mode == "stable":
+            one_hot_encoding[
+                np.arange(num_samples),
+                :,
+                np.random.randint(0, num_categories, size=num_samples),
+            ] = 1
+        else:
+            raise NotImplementedError(
+                "Only non-markov, markov, and stable modes for random cv gen implemented"
+            )
+        return one_hot_encoding
+
+    def make_embeddings(
+        self,
+        au_encoding,
+        topic_encoding,
+        num_cats,
+        noise=10.0,
+        confounding_strength=10.0,
+        gamma_mean=0.1,
+        gamma_scale=0.1,
+    ):
+        M, T, _ = topic_encoding.shape
+        N = au_encoding.shape[0]
+        gamma_shp = gamma_mean / gamma_scale
+        embedding_shp = (num_cats * gamma_shp * noise) / (noise + (num_cats - 1))
+        loadings_shp = (num_cats * gamma_shp * confounding_strength) / (
+            confounding_strength + (num_cats - 1)
+        )
+
+        embedding = au_encoding * gamma.rvs(
+            embedding_shp, scale=gamma_scale, size=(N, T, num_cats)
+        )
+        embedding += (1 - au_encoding) * gamma.rvs(
+            embedding_shp / noise, scale=gamma_scale, size=(N, T, num_cats)
+        )
+
+        loadings = topic_encoding * gamma.rvs(
+            loadings_shp, scale=gamma_scale, size=(M, T, num_cats)
+        )
+        loadings += (1 - topic_encoding) * gamma.rvs(
+            loadings_shp / confounding_strength,
+            scale=gamma_scale,
+            size=(M, T, num_cats),
+        )
+        return embedding, loadings
+
+    def make_simulated_influence(self):
+        N = self.A[0].shape[0]
+        # by default influence_shp == 0.005, so expected influence
+        # (at least in first timestep)
+        # = shp * scale = 0.005 * 10 = 0.05
+        if self.influence_shp > 0:
+            if self.influence_mode == "non-gp":
+                influence = gamma.rvs(
+                    self.influence_shp, scale=10.0, size=(N, self.T - 1)
+                )
+            elif self.influence_mode == "gp":
+                influence = np.zeros((N, self.T - 1))
+                influence[:, 0] = gamma.rvs(self.influence_shp, scale=10.0, size=(N,))
+                for t in range(1, self.T - 1):
+                    tmp = influence[:, t - 1] + np.random.normal(
+                        0, scale=self.influence_gpvar, size=(N,)
+                    )
+                    tmp[tmp < 0] = 0
+                    influence[:, t] = tmp
+            else:
+                raise NotImplementedError(
+                    "influence_mode must be 'non-gp' or 'gp' if influence_shp > 0"
+                )
+        else:
+            influence = np.zeros((N, self.T - 1))
+        return influence
+
+    def process_dataset(self):
+        # load real data
+        self.load_edgelist()
+        self.load_au_profs()
+        self.make_adj_matrix()
+        # snowball subsample roughly specified number of authors
+        self.aus = self.snowball_sample()
+        # restrict adjacencies to these aus
+        self.A = [A_t[self.aus, :] for A_t in self.A]
+        self.A = [A_t[:, self.aus] for A_t in self.A]
+
+        self.au_one_hot_covar_1 = self.get_one_hot_covariate_encoding(self.covar_1)
+
+        if self.covar_2 == "career_age_binned":
+            self.au_one_hot_covar_2 = self.get_one_hot_covariate_encoding(self.covar_2)
+        else:
+            self.au_one_hot_covar_2 = self.sample_random_covariate(
+                self.covar_2_num_cats,
+                self.A[0].shape[0],
+                mode=self.rand_cv_mode,
+                eta=self.rand_cv_eta,
+            )
+
+        num_regions = self.au_one_hot_covar_1.shape[1]
+        num_cats = self.covar_2_num_cats
+        # choose to make random topic embeddings w.r.t. covariate 1
+        # (author region by default) stable over time, so each region
+        # has stable topics in which it 'specialises'
+        self.topic_one_hot_covar_1 = self.sample_random_covariate(
+            num_regions,
+            self.num_topics,
+            mode="stable",
+        )
+        # use same mode for topic rand cv as au rand cv
+        self.topic_one_hot_covar_2 = self.sample_random_covariate(
+            num_cats, self.num_topics, mode=self.rand_cv_mode, eta=self.rand_cv_eta
+        )
+        self.beta = self.make_simulated_influence()
+        no_cit_aus = np.stack([A_t.sum(axis=0) == 0 for A_t in self.A])
+        self.beta[no_cit_aus] = 1.0
+
+    def make_multi_covariate_simulation(
+        self,
+        noise=10.0,
+        confounding_strength=10.0,
+        gamma_mean=0.1,
+        gamma_scale=0.1,
+        confounding_to_use="both",
+    ):
+        covar_1_num_cats = self.au_one_hot_covar_1.shape[1]
+        covar_2_num_cats = self.covar_2_num_cats
+
+        self.au_embed_1, self.topic_embed_1 = self.make_embeddings(
+            self.au_one_hot_covar_1,
+            self.topic_one_hot_covar_1,
+            covar_1_num_cats,
+            noise=noise,
+            confounding_strength=confounding_strength,
+            gamma_mean=gamma_mean,
+            gamma_scale=gamma_scale,
+        )
+
+        self.au_embed_2, self.topic_embed_2 = self.make_embeddings(
+            self.au_one_hot_covar_2,
+            self.topic_one_hot_covar_2,
+            covar_2_num_cats,
+            noise=noise,
+            confounding_strength=confounding_strength,
+            gamma_mean=gamma_mean,
+            gamma_scale=gamma_scale,
+        )
+
+        Y = self.make_mixture_preferences_outcomes(
+            confounding_to_use=confounding_to_use
+        )
+        return Y
+
+    def make_mixture_preferences_outcomes(self, confounding_to_use):
+        # author preferences for topics should should be dot product
+        # of corresponding embeddings
+        homophily_pref = np.einsum("itk,mtk->imt", self.au_embed_1, self.topic_embed_1)
+        random_pref = np.einsum("itk,mtk->imt", self.au_embed_2, self.topic_embed_2)
+
+        if confounding_to_use == "homophily":
+            base_rate = homophily_pref
+        elif confounding_to_use == "both":
+            base_rate = homophily_pref + random_pref
+        else:
+            base_rate = random_pref
+
+        N = self.au_embed_1.shape[0]
+        M = self.topic_embed_1.shape[0]
+        if self.do_sensitivity:
+            bias = self.create_bias()
+            # influence rate for i at t then just
+            # \sum_j a_{ij}^{t-1} y_{jk}^{t-1}
+            # for t=0 only use base rate, then generate rest sequentially
+            y_tm1 = csr_array(
+                poisson.rvs(base_rate[..., 0] + bias[..., 0]), shape=(N, M)
+            )
+            y = [y_tm1]
+            for t in range(self.T - 1):
+                influence_rate = (self.beta[:, t] * self.A[t]) @ y_tm1
+                y_tm1 = csr_array(
+                    poisson.rvs(base_rate + influence_rate + bias[..., t + 1]),
+                    shape=(N, M),
+                )
+                y.append(y_tm1)
+
+        else:
+            y_tm1 = csr_array(poisson.rvs(base_rate[..., 0]), shape=(N, M))
+            y = [y_tm1]
+            for t in range(self.T - 1):
+                influence_rate = (self.beta[:, t] * self.A[t]) @ y_tm1
+                y_tm1 = csr_array(
+                    poisson.rvs(base_rate + influence_rate),
+                    shape=(N, M),
+                )
+                y.append(y_tm1)
+
+        return y
+
+    def create_bias(self, gamma_mean=0.1, gamma_scale=0.1):
+        N = self.A[0].shape[0]
+        M = self.num_topics
+
+        bias = np.zeros((N, M, self.T))
+        for tm1, A_t in enumerate(self.A):
+            t = tm1 + 1
+            # (au1, au2) = np.nonzero(A_t)
+            mask = bernoulli.rvs(self.error_rate, size=len(A_t.data))
+            bias_mean = gamma_mean / self.sensitivity_parameter
+            n_biased = mask.sum()
+            bias_vals = gamma.rvs(
+                (bias_mean / gamma_scale), scale=gamma_scale, size=(n_biased,)
+            )
+            random_topics = bernoulli.rvs(
+                self.error_rate, size=(n_biased, self.num_topics)
+            )
+            # in csr format:
+            # column indices for row i are stored in
+            # indices[indptr[i]:indptr[i+1]]
+            # and their corresponding values are stored in
+            # data[indptr[i]:indptr[i+1]]
+            i_idxs = np.repeat(np.arange(N), np.diff(A_t.indptr))
+            j_idxs = A_t.indices
+            # now can get idxs of biased aus by edge
+            i_idxs = i_idxs[mask == 1]
+            j_idxs = j_idxs[mask == 1]
+            # now can get idxs of biased topics
+            tpc_idxs = np.nonzero(random_topics)[1]
+            # and must repeat the corresponding indices the right no. times
+            tpc_bias_cnts = random_topics.sum(axis=1)
+            i_idxs = np.repeat(i_idxs, tpc_bias_cnts)
+            j_idxs = np.repeat(j_idxs, tpc_bias_cnts)
+            # then finally
+            bias[i_idxs, tpc_idxs, t] = bias_vals
+            bias[j_idxs, tpc_idxs, t] = bias_vals
+            # and don't need to loop over all edges like below anymore,
+            # which would take v long for large dense graphs...
+            # for edge_iter in range(au1.shape[0]):
+            #     if mask[edge_iter]:
+            #         i = au1[edge_iter]
+            #         j = au2[edge_iter]
+            #         bias_mean = gamma_mean / self.sensitivity_parameter
+            #         bias_val = gamma.rvs((bias_mean / gamma_scale), scale=gamma_scale)
+            #         random_topics = bernoulli.rvs(self.error_rate, size=self.num_topics)
+            #         for k in np.nonzero(random_topics):
+            #             bias[i, k] = bias_val
+            #             bias[j, k] = bias_val
+
+        return bias
