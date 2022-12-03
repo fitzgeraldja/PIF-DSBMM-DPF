@@ -1,31 +1,15 @@
-import os
-import numpy as np
-import pandas as pd
-from scipy.sparse import csr_array
-import pickle
-from scipy.stats import gamma, poisson, bernoulli
-from scipy.special import expit
+r"""
+This script generates semi-synthetic data from real citation and author
+profile data.
 
-from functools import reduce
+Data reqs:
 
-import sys
-import tqdm
-
-from utils import sample_simple_markov
-
-
-"""
-This script generates semi-synthetic data from real citation and author 
-profile data. 
-
-Data reqs: 
-
-datapath assumed to be path to a folder containing 
+datapath assumed to be path to a folder containing
 
 edgelist file
 - npz format, file named 'citation_links.npz', and array named 'edge_list'
-- first col idx of author sending citation, 
-- second col idx of author receiving citation, 
+- first col idx of author sending citation,
+- second col idx of author receiving citation,
 - third col timestep at which this happens
 
 au_profs file
@@ -34,39 +18,53 @@ au_profs file
 - no duplicate (auid,windowed_year) combinations
 
 There should be one more timestep in the au_profs file than the edgelist file,
-and up to the final timestep they should either match, or it is assumed that 
+and up to the final timestep they should either match, or it is assumed that
 they can be paired according to their rank.
 
 Important default choices in semi-synthetic data generation:
 - Perform snowball sampling on aggregated adjacency matrix to subsample authors
   to more manageable size (by default = 3000)
 - Choose to make random topic embeddings w.r.t. covariate 1
-  (author region by default) stable over time, so each region 
+  (author region by default) stable over time, so each region
   has stable topics in which it 'specialises' - sample randomly at first timestep
   then use these values throughout
 - Other random covariate by default follows simple Markov process on given
-  number of categories, where at time t an author/topic is either assigned to 
+  number of categories, where at time t an author/topic is either assigned to
   their previous category with probability eta (default = 0.8) else randomly
   chooses out of all categories
-- Assume influence at time t realistically should depend to some degree on 
-  influence at previous timestep -- in real data this will be observed via 
-  the topic themselves, but as we are generating these here we enforce this 
-  artificially by imposing that 
+- Assume influence at time t realistically should depend to some degree on
+  influence at previous timestep -- in real data this will be observed via
+  the topic themselves, but as we are generating these here we enforce this
+  artificially by imposing that
     p(infl at t | infl at t-1) = infl at t-1 + Norm(0,s.d.)
-  where by default s.d. = 0.05 * mean influence (i.e. fluctuations ~5%), 
+  where by default s.d. = 0.05 * mean influence (i.e. fluctuations ~5%),
   then thresholding to enforce that influence is always positive
 - If an author is never cited in a time period, their influence is set to one
 
-- Added in extra flags to control some extra features: 
+- Added in extra flags to control some extra features:
   --rand_cv_mode \in ["non-markov","markov","stable"], default "markov"
   --rand_cv_eta = float \in [0,1], default 0.8
   --influence_mode \in ["gp","non-gp"], default "gp"
   --influence_gpvar = float \in [0,1], default 0.05 (av. percentage of mean infl)
-- Lowered default num topics to be simulated to 1000 from 3000, as 
-  closer to real data    
+- Lowered default num topics to be simulated to 1000 from 3000, as
+  closer to real data
 - make_multi_covariate_simulation now only return Y rather than Y,Y_past,
   and this is a list length T of csr_arrays
 """
+
+
+import os
+import pickle
+import sys
+from functools import reduce
+
+import numpy as np
+import pandas as pd
+import tqdm
+from scipy.sparse import csr_array
+from scipy.special import expit
+from scipy.stats import bernoulli, gamma, poisson
+from utils import sample_simple_markov
 
 
 class CitationSimulator:
@@ -84,6 +82,7 @@ class CitationSimulator:
         self,
         datapath="../dat/citation/regional_subset",
         subnetwork_size=3000,
+        sub_testsize=300,
         influence_shp=0.005,
         num_topics=1000,
         covar_1="region_categorical",
@@ -93,6 +92,7 @@ class CitationSimulator:
     ):
         self.datapath = datapath
         self.subnetwork_size = subnetwork_size
+        self.sub_testsize = sub_testsize
         self.influence_shp = influence_shp
         self.num_topics = num_topics
         self.covar_1 = covar_1
@@ -120,15 +120,22 @@ class CitationSimulator:
         -- at each iteration, starting from a random root author,
         follow outward citations until reach desired subsample
         size.
+        -- require that sampled authors are present before final
+        time period, so they are within train set at least once,
+        and that this still provides minimum specified number of
+        authors at final period (test set)
 
         :return: sampled_aus, subset of aus to use in experiment
         :rtype: np.ndarray
         """
         sampled_aus = set()
+        test_aus = set()
         aus = np.arange(self.N)
         np.random.shuffle(aus)
         u_iter = 0
-        while len(sampled_aus) < self.subnetwork_size:
+        while (len(sampled_aus) < self.subnetwork_size) or (
+            len(test_aus) < self.sub_testsize
+        ):
             au = aus[u_iter]
             # get all connected aus to this au in any timeslice
             conn_aus = reduce(
@@ -137,9 +144,13 @@ class CitationSimulator:
             )
             sampled_aus.add(au)
             sampled_aus |= set(list(conn_aus))
+            # add any sampled aus present in final time period to
+            # testset
+            test_aus |= set(self.uids[self.df_ts[-1]]) & sampled_aus
             if conn_aus.shape[0] > 2:
                 u_iter = np.random.choice(conn_aus)
             else:
+                # insufficient outlinks found, start at new root
                 u_iter += 1
         return np.array(list(sampled_aus))
 
@@ -182,7 +193,7 @@ class CitationSimulator:
             try:
                 assert len(self.df_ts) == self.T
                 tqdm.write(
-                    """Timesteps in author profiles and edgelist do not match, 
+                    """Timesteps in author profiles and edgelist do not match,
                     but there are the correct number of each."""
                 )
                 tqdm.write("Assuming can match on order...")
@@ -362,6 +373,7 @@ class CitationSimulator:
         self.make_adj_matrix()
         # snowball subsample roughly specified number of authors
         self.aus = self.snowball_sample()
+
         # restrict adjacencies to these aus
         self.A = [A_t[self.aus, :] for A_t in self.A]
         self.A = [A_t[:, self.aus] for A_t in self.A]

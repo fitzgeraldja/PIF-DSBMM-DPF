@@ -1,13 +1,12 @@
-import sys
-import numpy as np
-from scipy import special
-from scipy import sparse
 import argparse
-from scipy.stats import truncnorm, poisson, gamma
-from sklearn.metrics import mean_squared_error as mse
-
-import tqdm
+import sys
 from functools import reduce
+
+import numpy as np
+import tqdm
+from scipy import sparse, special
+from scipy.stats import gamma, poisson, truncnorm
+from sklearn.metrics import mean_squared_error as mse
 
 
 class CausalInfluenceModel:
@@ -284,13 +283,13 @@ class CausalInfluenceModel:
         self.normaliser = preference_component + influence_component
 
     ##for now, this will simply return log likelihood under the Poisson model for Y
-    def _compute_elbo(self, Y, A, Y_past, Z, W, Z_trans, W_trans):
+    def _compute_elbo(self, Y, A, Y_past, Z, W, Z_trans):
         """Compute the ELBO for all observed data
-        -- just compute the \mu_{ik}^t
+        -- just compute the \\mu_{ik}^t
         = \alpha_i^{t,\top}\tau_k^t
-        + \zeta_i^{t,\top}\gamma_k^t
-        + \sum_j \beta_j^{t-1} a_{ij}^{t-1} y_{jk}^{t-1}
-        then calc logpmf of y ~ Poisson(\mu) accordingly
+        + \\zeta_i^{t,\top}\\gamma_k^t
+        + \\sum_j \beta_j^{t-1} a_{ij}^{t-1} y_{jk}^{t-1}
+        then calc logpmf of y ~ Poisson(\\mu) accordingly
 
         :param Y: All observed data from t=1, T-1 sparse matrices of shape (N,M)
         :type Y: List[sparse.csr_array]
@@ -306,8 +305,6 @@ class CausalInfluenceModel:
         :type W: np.ndarray
         :param Z_trans: Transition matrix for topic-link confounder, shape (Q,Q)
         :type Z_trans: np.ndarray
-        :param W_trans: (Expected) transition matrix for topic confounder, shape (K,K)
-        :type W_trans: np.ndarray
 
         :return: ELBO
         :rtype: float
@@ -436,7 +433,7 @@ class CausalInfluenceModel:
             self.beta_shape, self.beta_rates
         )
 
-    def fit(self, Y, A, Z, W, Y_past):
+    def fit(self, Y, A, Z, W, Y_past, Z_trans):
         T = len(Y)
         N, M = Y[0].shape
         T += 1
@@ -450,7 +447,7 @@ class CausalInfluenceModel:
         except AssertionError:
             raise ValueError(
                 """
-                Dimensions of provided substitutes do not match one 
+                Dimensions of provided substitutes do not match one
                 or more specified number of components
                 """
             )
@@ -471,7 +468,7 @@ class CausalInfluenceModel:
         self._init_expectations()
 
         old_bd = float("-inf")
-        bd = self._compute_elbo(Y, A, Y_past, Z, W)
+        bd = self._compute_elbo(Y, A, Y_past, Z, W, Z_trans)
 
         for i in range(self.max_iter):
             if self.verbose:
@@ -492,7 +489,7 @@ class CausalInfluenceModel:
                 self._update_gamma(Y, Z)
                 self._update_alpha(Y, W)
 
-            bd = self._compute_elbo(Y, A, Y_past, Z, W)
+            bd = self._compute_elbo(Y, A, Y_past, Z, W, Z_trans)
 
             if (bd - old_bd) / abs(old_bd) < self.tol:
                 print(old_bd, bd)
@@ -514,6 +511,7 @@ if __name__ == "__main__":
 
     # TODO: finish fully synthetic data gen (?)
     Z = gamma.rvs(0.5, scale=0.1, size=(N, Q))
+    Z_trans = np.random.rand(Q, Q)
     Gamma = gamma.rvs(0.5, scale=0.1, size=(M, Q))
     Alpha = gamma.rvs(0.5, scale=0.1, size=(N, K))
     W = gamma.rvs(0.5, scale=0.1, size=(M, K))
@@ -535,7 +533,7 @@ if __name__ == "__main__":
     print("Sparsity of data matrices:", A.mean(), Y[..., :-1].mean(), Y[..., 1:].mean())
 
     pmf = CausalInfluenceModel(n_components=K, n_exog_components=K, verbose=True)
-    pmf.fit(Y[..., 1:], A, Z, W, Y[..., :-1])
+    pmf.fit(Y[..., 1:], A, Z, W, Y[..., :-1], Z_trans)
 
     print("Beta overlap:", get_set_overlap(pmf.E_beta, Beta))
     print("MSE Beta:", mse(Beta, pmf.E_beta))
