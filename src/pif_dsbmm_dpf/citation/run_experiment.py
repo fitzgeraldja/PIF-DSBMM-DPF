@@ -498,7 +498,8 @@ def main(argv):
             np.savez_compressed(outfile, fitted=Beta_p, true=Beta)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "pif_dsbmm_dpf"
     # TODO:
     # -- will remove very final period, so the substitutes
     #    are of dim T-1
