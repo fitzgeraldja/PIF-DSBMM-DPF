@@ -138,9 +138,16 @@ class CitationSimulator:
         ):
             au = aus[u_iter]
             # get all connected aus to this au in any timeslice
+            # NB column indices for row i are stored in
+            # indices[indptr[i]:indptr[i+1]] in csr
             conn_aus = reduce(
                 lambda x, y: np.union1d(x, y),
-                [np.flatnonzero(self.A[t][u_iter, :]) for t in range(self.T - 1)],
+                [
+                    self.A[t].indices[
+                        self.A[t].indptr[u_iter] : self.A[t].indptr[u_iter] + 1
+                    ]
+                    for t in range(self.T - 1)
+                ],
             )
             sampled_aus.add(au)
             sampled_aus |= set(list(conn_aus))
