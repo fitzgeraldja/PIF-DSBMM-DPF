@@ -189,6 +189,15 @@ class CitationSimulator:
             t: self.au_profs.auid_idx[self.au_profs.windowed_year == t]
             for t in self.df_ts
         }
+
+    def make_adj_matrix(self):
+        """Construct adjacency matrix at each timestep from provided edgelist.
+        Given causal model specified, assume pass one fewer timestep worth of
+        edge information than have author profiles for.
+        """
+        time_inds = self.edgelist[:, 2]
+        self.timesteps = np.unique(time_inds)
+        self.T = len(self.timesteps) + 1
         if not np.all(self.df_ts[:-1] == self.timesteps):
             try:
                 assert len(self.df_ts) == self.T
@@ -201,15 +210,6 @@ class CitationSimulator:
                 raise ValueError(
                     "Timesteps in edgelist and author profiles do not match."
                 )
-
-    def make_adj_matrix(self):
-        """Construct adjacency matrix at each timestep from provided edgelist.
-        Given causal model specified, assume pass one fewer timestep worth of
-        edge information than have author profiles for.
-        """
-        time_inds = self.edgelist[:, 2]
-        self.timesteps = np.unique(time_inds)
-        self.T = len(self.timesteps) + 1
         row_inds = [self.edgelist[time_inds == t, 0] for t in self.timesteps]
         col_inds = [self.edgelist[time_inds == t, 1] for t in self.timesteps]
         self.N = self.edgelist[:, :2].max() + 1
