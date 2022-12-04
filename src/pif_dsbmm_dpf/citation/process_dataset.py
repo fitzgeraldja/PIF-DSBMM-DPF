@@ -227,9 +227,10 @@ class CitationSimulator:
         col_inds = [
             self.edgelist[time_inds == t, 1].astype(int) for t in self.timesteps
         ]
-        self.N = self.edgelist[:, :2].astype(int).max() + 1
+        self.N = len(set(self.edgelist[:, 0]) | set(self.edgelist[:, 1]))
         try:
-            assert self.N < self.subnetwork_size
+            assert self.N > self.subnetwork_size
+            tqdm.write(f"Found {self.N} authors in edgelist, over {self.T} timesteps.")
         except AssertionError:
             raise ValueError(
                 f"Network size is smaller than desired subnetwork size: {self.N} < {self.subnetwork_size}"
