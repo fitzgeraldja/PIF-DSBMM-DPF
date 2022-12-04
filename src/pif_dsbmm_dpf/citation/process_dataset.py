@@ -228,7 +228,7 @@ class CitationSimulator:
             self.edgelist[time_inds == t, 1].astype(int) for t in self.timesteps
         ]
         # self.N = len(set(self.edgelist[:, 0]) | set(self.edgelist[:, 1]))
-        self.N = self.edgelist[:, :2].max() + 1
+        self.N = self.edgelist[:, :2].max().astype(int) + 1
         # tqdm.write(self.edgelist[:, :2].min(), self.edgelist[:, :2].max())
         try:
             assert self.N > self.subnetwork_size
