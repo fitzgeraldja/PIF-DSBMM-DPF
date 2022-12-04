@@ -64,6 +64,7 @@ import tqdm
 from scipy.sparse import csr_array
 from scipy.special import expit
 from scipy.stats import bernoulli, gamma, poisson
+from tqdm import tqdm
 from utils import sample_simple_markov
 
 
@@ -86,7 +87,7 @@ class CitationSimulator:
         covar_1="region_categorical",
         covar_2="random",
         covar_2_num_cats=5,
-        **kwargs
+        **kwargs,
     ):
         self.datapath = datapath
         self.subnetwork_size = subnetwork_size
@@ -133,32 +134,35 @@ class CitationSimulator:
         aus = np.arange(self.N)
         np.random.shuffle(aus)
         u_iter = 0
-        while (len(sampled_aus) < self.subnetwork_size) or (
-            len(test_aus) < self.sub_testsize
-        ):
-            au = aus[u_iter]
-            # get all connected aus to this au in any timeslice
-            # NB column indices for row i are stored in
-            # indices[indptr[i]:indptr[i+1]] in csr
-            conn_aus = reduce(
-                lambda x, y: np.union1d(x, y),
-                [
-                    self.A[t].indices[
-                        self.A[t].indptr[u_iter] : self.A[t].indptr[u_iter] + 1
-                    ]
-                    for t in range(self.T - 1)
-                ],
-            )
-            sampled_aus.add(au)
-            sampled_aus |= set(list(conn_aus))
-            # add any sampled aus present in final time period to
-            # testset
-            test_aus |= set(self.uids[self.df_ts[-1]]) & sampled_aus
-            if conn_aus.shape[0] > 2:
-                u_iter = np.random.choice(conn_aus)
-            else:
-                # insufficient outlinks found, start at new root
-                u_iter += 1
+
+        with tqdm(total=self.subnetwork_size, desc="Snowball samp. size:") as pbar:
+            while len(sampled_aus) < self.subnetwork_size:
+                au = aus[u_iter]
+                # get all connected aus to this au in any timeslice
+                # NB column indices for row i are stored in
+                # indices[indptr[i]:indptr[i+1]] in csr
+                conn_aus = reduce(
+                    lambda x, y: np.union1d(x, y),
+                    [
+                        self.A[t].indices[
+                            self.A[t].indptr[u_iter] : self.A[t].indptr[u_iter] + 1
+                        ]
+                        for t in range(self.T - 1)
+                    ],
+                )
+                pbar.update(len(set(list(conn_aus)) - sampled_aus))
+                sampled_aus.add(au)
+                sampled_aus |= set(list(conn_aus))
+                # add any sampled aus present in final time period to
+                # testset
+                test_aus |= set(self.uids[self.df_ts[-1]]) & sampled_aus
+                if conn_aus.shape[0] > 2:
+                    u_iter = np.random.choice(conn_aus)
+                else:
+                    # insufficient outlinks found, start at new root
+                    u_iter += 1
+        if len(test_aus) < self.sub_testsize:
+            tqdm.write(f"Warning: only {len(test_aus)} test authors sampled")
         return np.array(list(sampled_aus))
 
     def load_edgelist(self):
@@ -224,6 +228,10 @@ class CitationSimulator:
             self.edgelist[time_inds == t, 1].astype(int) for t in self.timesteps
         ]
         self.N = self.edgelist[:, :2].astype(int).max() + 1
+        try:
+            assert self.N < self.subnetwork_size
+        except AssertionError:
+            raise ValueError("Network size is smaller than desired subnetwork size.")
         data = [np.ones(row_inds[t].shape[0]) for t in range(self.T - 1)]
         # row_inds.shape, col_inds.shape, data.shape
         self.A = [
