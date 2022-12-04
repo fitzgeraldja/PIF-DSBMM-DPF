@@ -24,7 +24,7 @@ for MODEL_ITER in pif;
 do
 	for VAR_ITER in z-theta-joint;
 	do
-		
+
 		for SIM_ITER in {1..10};
 		do
 			export SEED=${SIM_ITER}

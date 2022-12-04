@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "pif-dsbmm-dpf"
+version = "0.1.0"
+description = "Poisson dynamic influence factorisation with DSBMM and dPF substitutes"
+authors = ["John Fitzgerald <j.a.fitzgerald@outlook.com>"]
+license = "GPL-3.0-or-later"
+repository = "https://github.com/fitzgeraldja/PIF-DSBMM-DPF"
+packages = [
+    { include = "pif_dsbmm_dpf", from = "src" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+PyYAML = "^6.0"
+numpy = "^1.22.3"
+numba = "^0.55.1"
+scipy = "^1.8.0"
+matplotlib = "^3.5.2"
+scikit-learn = "^1.0.2"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
