@@ -240,7 +240,7 @@ def subset_dsbmm_data(
     data: Dsbmm_datatype,
     subset_idxs: np.ndarray,
     T: int,
-    sim_tpcs: Optional[list[sparse.csrarray]] = None,
+    sim_tpcs: Optional[list[sparse.csr_array]] = None,
     meta_choices: Optional[list[str]] = None,
     remove_final=True,
 ):
