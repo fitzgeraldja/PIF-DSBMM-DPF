@@ -37,6 +37,8 @@ from absl import app, flags
 from sklearn.decomposition import NMF
 from tqdm import tqdm
 
+import pif_dsbmm_dpf.utils as utils
+
 # local modules
 from pif_dsbmm_dpf.model import joint_factor_model as joint
 from pif_dsbmm_dpf.model import multi_cause_influence as causal
@@ -44,7 +46,6 @@ from pif_dsbmm_dpf.model import network_model as nm
 from pif_dsbmm_dpf.model import pmf as pmf
 from pif_dsbmm_dpf.model import spf as spf
 
-from . import utils
 from .process_dataset import CitationSimulator
 
 
