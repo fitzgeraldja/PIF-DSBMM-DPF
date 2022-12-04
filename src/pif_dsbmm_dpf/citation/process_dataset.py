@@ -184,7 +184,7 @@ class CitationSimulator:
             self.au_profs.career_age.values, age_bins
         )
         self.au_profs["career_age_binned"] -= 1
-        self.df_ts = np.unique(self.au_profs.windowed_year.values, dtype=int)
+        self.df_ts = np.unique(self.au_profs.windowed_year.values).astype(int)
         self.uids = {
             t: self.au_profs.auid_idx[self.au_profs.windowed_year == t]
             for t in self.df_ts
