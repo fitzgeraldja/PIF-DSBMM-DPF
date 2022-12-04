@@ -507,8 +507,6 @@ if __name__ == "__main__":
     # -- check this works w how coded rest, + give
     #    option of either using Z directly or
     #    premultiplying w trans
-    # -- make sure attach region au metadata to DSBMM
-    #    nets
     # -- gen au_profs, edgelist for CI if not done already
     # -- choose Q=16 so can use hierarchical w 2 layers, 8 groups per
     # -- get running
@@ -621,8 +619,11 @@ if __name__ == "__main__":
 
     flags.DEFINE_string(
         "region_col_id",
-        "region",
-        "identifier for metadata in dsbmm-type data corresponding to 'region'",
+        "main_adm1",
+        """
+        Identifier for metadata in dsbmm-type data corresponding to 'region'
+        -- in paper, corresponds to main_adm1 or main_ctry of author
+        """,
     )
 
     flags.DEFINE_string(
