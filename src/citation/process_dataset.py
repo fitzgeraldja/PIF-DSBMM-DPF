@@ -64,20 +64,19 @@ import tqdm
 from scipy.sparse import csr_array
 from scipy.special import expit
 from scipy.stats import bernoulli, gamma, poisson
-from utils import sample_simple_markov
+
+from .utils import sample_simple_markov
 
 
 class CitationSimulator:
-    # TODO:
     # -- Allow either
     # (i) Independent random covariates at each timestep, or
     # (ii) Sample the random covariates according to some Markov chain
-    # NB even in case (i), the country indicators will still have
+    # NB even in case (i), the region/country indicators will still have
     # some temporal correlation, so will choose to only sample the
     # corresponding random covariates for topics once, then use these
     # throughout -- the actual confounders are only noisy observations
     # of these anyway so shouldn't be a major issue.
-    # --
     def __init__(
         self,
         datapath="/scratch/fitzgeraldj/data/caus_inf_data",

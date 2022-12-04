@@ -37,8 +37,6 @@ from absl import app, flags
 from sklearn.decomposition import NMF
 from tqdm import tqdm
 
-from citation.process_dataset import CitationSimulator
-
 from ..model import joint_factor_model as joint
 from ..model import multi_cause_influence as causal
 from ..model import network_model as nm
@@ -47,6 +45,7 @@ from ..model import spf as spf
 
 # local modules
 from . import utils
+from .process_dataset import CitationSimulator
 
 
 def post_process_influence(X, Beta):
