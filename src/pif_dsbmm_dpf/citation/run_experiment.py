@@ -38,11 +38,12 @@ from sklearn.decomposition import NMF
 from tqdm import tqdm
 
 # local modules
-from ..model import joint_factor_model as joint
-from ..model import multi_cause_influence as causal
-from ..model import network_model as nm
-from ..model import pmf as pmf
-from ..model import spf as spf
+from pif_dsbmm_dpf.model import joint_factor_model as joint
+from pif_dsbmm_dpf.model import multi_cause_influence as causal
+from pif_dsbmm_dpf.model import network_model as nm
+from pif_dsbmm_dpf.model import pmf as pmf
+from pif_dsbmm_dpf.model import spf as spf
+
 from . import utils
 from .process_dataset import CitationSimulator
 
@@ -498,8 +499,7 @@ def main(argv):
             np.savez_compressed(outfile, fitted=Beta_p, true=Beta)
 
 
-if __name__ == "__main__" and __package__ is None:
-    __package__ = "pif_dsbmm_dpf"
+if __name__ == "__main__":
     # TODO:
     # -- will remove very final period, so the substitutes
     #    are of dim T-1
