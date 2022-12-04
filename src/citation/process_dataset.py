@@ -80,7 +80,7 @@ class CitationSimulator:
     # --
     def __init__(
         self,
-        datapath="../dat/citation/regional_subset",
+        datapath="/scratch/fitzgeraldj/data/caus_inf_data",
         subnetwork_size=3000,
         sub_testsize=300,
         influence_shp=0.005,
@@ -123,7 +123,9 @@ class CitationSimulator:
         -- require that sampled authors are present before final
         time period, so they are within train set at least once,
         and that this still provides minimum specified number of
-        authors at final period (test set)
+        authors at final period (test set), where an author is
+        considered present there if we have a profile for them
+        (i.e. real region data at least is available)
 
         :return: sampled_aus, subset of aus to use in experiment
         :rtype: np.ndarray
@@ -459,6 +461,8 @@ class CitationSimulator:
 
         N = self.au_embed_1.shape[0]
         M = self.topic_embed_1.shape[0]
+        pres_aus = set()  # aus who 'published' before t=T
+        pres_tpcs = set()  # tpcs that were 'published' before t=T
         if self.do_sensitivity:
             bias = self.create_bias()
             # influence rate for i at t then just
@@ -467,6 +471,8 @@ class CitationSimulator:
             y_tm1 = csr_array(
                 poisson.rvs(base_rate[..., 0] + bias[..., 0]), shape=(N, M)
             )
+            pres_aus |= set(np.flatnonzero(y_tm1.sum(axis=1)))
+            pres_tpcs |= set(np.flatnonzero(y_tm1.sum(axis=0)))
             y = [y_tm1]
             for t in range(self.T - 1):
                 influence_rate = (self.beta[:, t] * self.A[t]) @ y_tm1
@@ -474,6 +480,12 @@ class CitationSimulator:
                     poisson.rvs(base_rate + influence_rate + bias[..., t + 1]),
                     shape=(N, M),
                 )
+                if t == self.T - 2:
+                    # unlikely but possible that simulate an au / tpc in
+                    # final period that was never simulated in earlier periods
+                    # as we're using this to test + val, we remove these
+                    y_tm1[np.ix_(list(pres_aus), list(pres_tpcs))] = 0
+                    y_tm1 = csr_array(y_tm1, shape=(N, M))
                 y.append(y_tm1)
 
         else:

@@ -120,7 +120,14 @@ def get_dpf_res_dir(dpf_settings):
     return ret_dir
 
 
-def run_dpf(dpf_repo_dir, dpf_results_dir, dpf_settings):
+def run_dpf(
+    dpf_repo_dir,
+    dpf_results_dir,
+    dpf_settings,
+    idx_map_dir: Path = None,
+    true_N: int = None,
+    true_M: int = None,
+):
     subprocess.run(
         [
             str(dpf_repo_dir / "src/dynnormprec"),
@@ -181,7 +188,7 @@ def run_dpf(dpf_repo_dir, dpf_results_dir, dpf_settings):
                     usecols=lambda name: "idx" not in str(name),
                     sep="\t",
                 ).values,
-                beta_files,
+                theta_files,
             )
         ),
         axis=1,
@@ -195,6 +202,28 @@ def run_dpf(dpf_repo_dir, dpf_results_dir, dpf_settings):
         sep="\t",
     ).values
     Theta_hat += glob_theta[:, np.newaxis, :]
+
+    if idx_map_dir is not None:
+        with open(idx_map_dir / "au_n_tpc_maps.pkl", "rb") as f:
+            dpf_au_idx_map, dpf_tpc_idx_map = pickle.load(f)
+        # now need to map back to original indices
+        try:
+            assert (true_N is not None) and (true_M is not None)
+        except AssertionError:
+            raise ValueError(
+                "true_N and true_M must be provided if idx_map_dir is provided"
+            )
+        _, T, K = W_hat.shape
+        re_W = np.zeros((true_M, T, K))
+        re_Theta = np.zeros((true_N, T, K))
+        true_n_idxs = np.array(list(dpf_au_idx_map.keys()))
+        new_n_idxs = np.array(list(dpf_au_idx_map.values()))
+        true_m_idxs = np.array(list(dpf_tpc_idx_map.keys()))
+        new_m_idxs = np.array(list(dpf_tpc_idx_map.values()))
+        re_W[true_m_idxs] = W_hat[new_m_idxs]
+        re_Theta[true_n_idxs] = Theta_hat[new_n_idxs]
+        W_hat = re_W
+        Theta_hat = re_Theta
 
     return W_hat, Theta_hat
 
@@ -211,6 +240,7 @@ def subset_dsbmm_data(
     data: Dsbmm_datatype,
     subset_idxs: np.ndarray,
     T: int,
+    sim_tpcs: Optional[list[sparse.csrarray]] = None,
     meta_choices: Optional[list[str]] = None,
     remove_final=True,
 ):
@@ -229,6 +259,17 @@ def subset_dsbmm_data(
             X_s for mn, X_s in zip(data["meta_names"], data["X"]) if mn in chosen_meta
         ]
     data["X"] = [X_s[subset_idxs, ...] for X_s in data["X"]]
+    if sim_tpcs is not None:
+        # NB ordering should already have been done by subsetting, so
+        # should be able to just assign directly
+        tpc_idxs = [idx for idx, cm in enumerate(chosen_meta) if cm.startswith("tpc")]
+        # currently need to make dense for DSBMM
+        sim_tpcs = np.stack([X_t.toarray() for X_t in sim_tpcs], axis=1)
+        data["X"][tpc_idxs[0]] = sim_tpcs
+        if len(tpc_idxs) > 0:
+            # remove any other topic features
+            for tpc_idx in tpc_idxs[1:]:
+                data["X"].pop(tpc_idx)
     if remove_final:
         # remove knowledge of final timestep
         if len(data["A"]) == T:
@@ -238,11 +279,13 @@ def subset_dsbmm_data(
     return data
 
 
-def get_dpf_data(
+def gen_dpf_data(
     dpf_datadir: Path,
     subset_idxs: np.ndarray,
     seed: Optional[int] = None,
     datetime_str: Optional[str] = None,
+    sim_tpcs: Optional[sparse.csr_array] = None,
+    window_len: int = 3,
 ):
     subdir_str = f"seed{seed}" if seed is not None else f"init:{datetime_str}"
     subdir = dpf_datadir / subdir_str
@@ -262,11 +305,14 @@ def get_dpf_data(
         tqdm.write(f"No preexisting dpf subset data found for {subdir_str}")
         tqdm.write("Generating...")
         subdir.mkdir(exist_ok=True)
-        dpf_train, dpf_val, dpf_test = gen_subset_dpf(
-            dpf_datadir,
-            subset_idxs,
-            subdir,
-        )
+        if sim_tpcs is None:
+            dpf_train, dpf_val, dpf_test = gen_subset_dpf(
+                dpf_datadir, subset_idxs, subdir, window_len=window_len
+            )
+        else:
+            dpf_train, dpf_val, dpf_test = convert_to_dpf_format(
+                sim_tpcs, subdir, window_len=window_len
+            )
         tqdm.write("Done.")
     tqdm.write(
         f"train, val, test contain {len(dpf_train)}, {len(dpf_val)}, {len(dpf_test)} records resp."
@@ -279,10 +325,7 @@ def get_dpf_data(
         {len(dpf_test)/tot_records:.2g}
         split"""
     )
-    with open(subdir / "au_n_tpc_maps.pkl", "rb") as f:
-        dpf_au_idx_map, dpf_tpc_idx_map = pickle.load(f)
-
-    return dpf_train, dpf_val, dpf_test, dpf_au_idx_map, dpf_tpc_idx_map
+    return subdir
 
 
 def gen_subset_dpf(
@@ -292,9 +335,15 @@ def gen_subset_dpf(
     min_train_N: int = 1000,
     min_val_N: int = 100,
     min_test_N: int = 300,
+    window_len: int = 3,
 ):
-    """Assume dpf_datadir contains all available data in correct format,
+    """Assume dpf_datadir contains all available REAL data in correct format,
     so all that is required is subsetting and saving to new dir
+
+    dPF expects data tsvs in form
+    auid_idx, topic_idx, n_pubs, time_idx
+    in three separate files
+    -- train.tsv, validation.tsv, test.tsv
 
     :param dpf_datadir: path to dir containing all data, in correct format
     :type dpf_datadir: Path
@@ -308,11 +357,9 @@ def gen_subset_dpf(
     :type min_val_N: int, optional
     :param min_test_N: minimum number of author records in test set, defaults to 300
     :type min_test_N: int, optional
+    :param window_len: length of window to use for windowed year, defaults to 3
+    :type window_len: int, optional
     """
-    # dPF expects data tsvs in form
-    # auid_idx, topic_idx, n_pubs, time_idx
-    # in three separate files
-    # -- train.tsv, validation.tsv, test.tsv
 
     end_names = ["train.tsv", "validation.tsv", "test.tsv"]
     in_fnames = list(map(lambda x: dpf_datadir / x, end_names))
@@ -326,6 +373,14 @@ def gen_subset_dpf(
         ),
         in_fnames,
     )
+    try:
+        for df in [all_train, all_val, all_test]:
+            assert np.all(np.diff(df.windowed_year.values) == window_len)
+    except AssertionError:
+        raise ValueError(
+            f"Window length in data does not match specified value, {window_len}"
+        )
+
     dpf_train, dpf_val, dpf_test = map(
         lambda x: x[np.isin(x.auid_idx.values, subset_idxs)],
         [
@@ -372,18 +427,138 @@ def gen_subset_dpf(
     return dpf_train, dpf_val, dpf_test
 
 
+def convert_to_dpf_format(
+    sim_tpcs: list[sparse.csr_array],
+    out_dir: Path,
+    min_train_N: int = 1000,
+    min_val_N: int = 100,
+    min_test_N: int = 300,
+    window_len: int = 3,
+    val_frac: float = 0.1,
+):
+    """Converts a list of sparse author-topic counts, length T, each shape
+    (N,M) to dPF format -- note that by default we assume a window length
+    so must multiply time index by this to get in correct form
+
+    dPF expects data tsvs in form
+    auid_idx, topic_idx, n_pubs, time_idx
+    in three separate files
+    -- train.tsv, validation.tsv, test.tsv
+
+    We will assume that all but final time period are train,
+    then randomly split the final time period into val and test
+    -- does cause some minor data leakage, in that we should overall
+    choose model hyperparams that better suit test data than ideal,
+    as some val data may be for authors in test set and/or for authors
+    closely linked to authors in test set, but this semi-transductive
+    'problem' would occur anyway unless greater care taken.
+
+    When applying on real data, we'll manually split into train, val, test,
+    then ensure that the validation data is from first year / three in final
+    period, and test is remainder -- this is time series approach and should
+    be reasonable.
+
+    :param sim_tpcs: simulated topics
+    :type sim_tpcs: list[sparse.csr_array]
+    :param out_dir: path to dir to save output in
+    :type out_dir: Path
+    :param window_len: time window length, defaults to 3
+    :type window_len: int, optional
+    :param val_frac: fraction of final period data to use for validation,
+                     remainder (1-test_frac) used for test, defaults to 0.1
+    :type val_frac: float, optional
+    :return: dpf_train, dpf_val, dpf_test
+    :rtype: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+    """
+    end_names = ["train.tsv", "validation.tsv", "test.tsv"]
+    out_fnames = list(map(lambda x: out_dir / x, end_names))
+    dpf_train = pd.DataFrame(
+        np.concatenate(
+            [
+                np.stack(
+                    [
+                        *tpcs_t.nonzero(),
+                        tpcs_t.data,
+                        window_len * t * np.ones(tpcs_t.nnz),
+                    ],
+                    axis=1,
+                )
+                for t, tpcs_t in enumerate(sim_tpcs[:-1])
+            ],
+            axis=0,
+        ),
+        columns=["auid_idx", "tpc_idx", "count", "windowed_year"],
+    )
+    # now split final time period into val and test
+    val_idxs = np.random.rand(len(sim_tpcs[-1].data)) < val_frac
+    fin_data = pd.DataFrame(
+        np.stack(
+            [
+                *sim_tpcs[-1].nonzero(),
+                sim_tpcs[-1].data,
+                window_len * (len(sim_tpcs) - 1) * np.ones(sim_tpcs[-1].nnz),
+            ],
+            axis=1,
+        ),
+        columns=["auid_idx", "tpc_idx", "count", "windowed_year"],
+    )
+    dpf_val = fin_data[val_idxs]
+    dpf_test = fin_data[~val_idxs]
+
+    # gen reidx maps again here just in case -- in theory likely to be
+    # irrelevant here as data is synthetic, and should already have
+    # ensured that authors in final period are present previously, but
+    # keep for consistency
+    # require that val,test aus + tpcs were present in train set
+    train_aus = np.unique(dpf_train.auid_idx.values)
+    train_tpcs = np.unique(dpf_train.tpc_idx.values)
+    dpf_val = dpf_val[
+        np.isin(dpf_val.auid_idx.values, train_aus)
+        & np.isin(dpf_val.tpc_idx.values, train_tpcs)
+    ]
+    dpf_test = dpf_test[
+        np.isin(dpf_test.auid_idx.values, train_aus)
+        & np.isin(dpf_test.tpc_idx.values, train_tpcs)
+    ]
+    if len(dpf_train) < min_train_N:
+        tqdm.write(
+            f"Warning, train set likely too small: only {len(dpf_train)} records"
+        )
+    if len(dpf_val) < min_val_N:
+        tqdm.write(f"Warning, val set likely too small: only {len(dpf_val)} records")
+    if len(dpf_test) < min_test_N:
+        tqdm.write(f"Warning, test set likely too small: only {len(dpf_test)} records")
+
+    # now need to reindex aus, tpcs for dPF to work
+    au_idx_map = dict(zip(train_aus, np.arange(len(train_aus))))
+    tpc_idx_map = dict(zip(train_tpcs, np.arange(len(train_tpcs))))
+
+    dpf_train, dpf_val, dpf_test = map(
+        lambda df: df.replace({"auid_idx": au_idx_map, "tpc_idx": tpc_idx_map}),
+        [dpf_train, dpf_val, dpf_test],
+    )
+    with open(out_dir / "au_n_tpc_maps.pkl", "wb") as f:
+        pickle.dump([au_idx_map, tpc_idx_map], f)
+    # finally write to new files
+    for fname, df in zip(out_fnames, [dpf_train, dpf_val, dpf_test]):
+        df.to_csv(fname, sep="\t", header=False, index=False)
+
+    return dpf_train, dpf_val, dpf_test
+
+
 def run_dsbmm(
     dsbmm_data: Dsbmm_datatype,
     dsbmm_datadir: Path,
     Q: int,
     ignore_meta=False,
+    deg_corr=True,
+    directed=True,
 ):
     dsbmm_data["Q"] = Q
     Tm1 = len(dsbmm_data["A"])
     N = dsbmm_data["A"][0].shape[0]
     h_l = 2  # 2 layers
 
-    # # TODO: consider further sorting dsbmm meta here
     # meta_names = dsbmm_data["meta_names"]
 
     dsbmm_settings: dict[str, Union[None, bool, int, float, str]] = dict(
@@ -429,8 +604,8 @@ def run_dsbmm(
             tuning_param=1.0,
             learning_rate=0.2,
             patience=5,
-            deg_corr=True,
-            directed=True,
+            deg_corr=deg_corr,
+            directed=directed,
             max_iter=100,
             max_msg_iter=30,
             ignore_meta=ignore_meta,

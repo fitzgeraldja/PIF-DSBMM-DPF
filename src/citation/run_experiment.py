@@ -9,6 +9,16 @@ scripts, extras to note are:
 - Remove final time period for DSBMM data, so substitutes are for up to T-1
   -- final time period must currently be inferred using point estimate
      of corresponding value
+- DSBMM here uses SIMULATED topics as topic metadata -- this means that
+  including extra real meta should be roughly fine, in that such metadata
+ should actually be more or less indep of simulated topics. However, (i)
+ this won't necessarily be true when apply on real topics, (eg if include
+ subjectarea codings as separate metadata) and (ii) that including such
+ additional metadata may actually render the substitutes less effective in
+ specifically capturing the sim/real topics, and rendering them cond. ind.,
+ even if it provides a better model for the full dataset overall -- instead
+ here by default we ONLY use the simulated topics, but others may be added
+ using the meta_choice flag
 """
 
 import argparse
@@ -61,7 +71,9 @@ def get_set_overlap(Beta_p, Beta, k=50):
 
 def main(argv):
     datadir = Path(FLAGS.data_dir)
-    outdir = FLAGS.out_dir
+
+    outdir = Path(FLAGS.out_dir)
+    outdir.mkdir(exist_ok=True)
     model = FLAGS.model
     variant = FLAGS.variant
 
@@ -83,6 +95,9 @@ def main(argv):
         meta_choices = None
     else:
         meta_choices = meta_choices.split(",")
+    edge_weight_choice = FLAGS.edge_weight_choice
+    if edge_weight_choice == "none":
+        edge_weight_choice = None
 
     datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
     dsbmm_label_str = f"seed{seed}_{datetime_str}" if seed is not None else datetime_str
@@ -92,11 +107,18 @@ def main(argv):
         (int(c.split(",")[0]), int(c.split(",")[1])) for c in configs.split(":")
     ]
 
+    window_len = 3  # set window length for dPF
+
+    # specify main code directory
+    main_code_dir = Path("~/Documents/main_project/post_confirmation/code").expanduser()
+    # NB if using dPF this should be the location which contains the dPF
+    # repo (i.e. DynamicPoissonFactorization dir with code contained)
+
     print("Confounding configs:", confounding_configs)
     print("Model:", model)
 
-    write = os.path.join(outdir, model + "." + variant + "_model_fitted_params")
-    os.makedirs(write, exist_ok=True)
+    write = outdir / (model + "." + variant + "_model_fitted_params")
+    write.mkdir(exist_ok=True)
 
     simulation_model = CitationSimulator(
         datapath=datadir,
@@ -312,52 +334,29 @@ def main(argv):
                 # -- need to change cwd to scratch/ before running dPF
                 # as saves in working directory
                 # pass location of dpf code
-                main_code_dir = Path(
-                    "~/Documents/main_project/post_confirmation/code"
-                ).expanduser()
+                if "-ndc" in variant:
+                    variant.replace("-ndc", "")
+                    deg_corr = False
+                else:
+                    deg_corr = True
+                if "-undir" in variant:
+                    variant.replace("-undir", "")
+                    directed = False
+                else:
+                    directed = True
+
                 dpf_repo_dir = main_code_dir / "DynamicPoissonFactorization"
                 dpf_datadir = datadir / "dpf_data"  # see reqs in dpf repo
+                dpf_datadir.mkdir(exist_ok=True)
 
-                try:
-                    dpf_train
-                except NameError:
-                    (
-                        dpf_train,
-                        dpf_val,
-                        dpf_test,
-                        dpf_au_idx_map,
-                        dpf_tpc_idx_map,
-                    ) = utils.get_dpf_data(
-                        dpf_datadir,
-                        simulation_model.aus,
-                        seed=seed,
-                        datetime_str=datetime_str,
-                    )
-                # TODO:
-                # -- check that dpf subset size matches CI, and
-                # that idx is same
-                # -- make sure that DSBMM uses SIMULATED topics
-                #    as meta -- this also means that including
-                #    extra info should be roughly fine, in that
-                #    real meta should actually be more or less
-                #    indep of simulated topics. However, (i) this
-                #    still won't be true when apply on real topics,
-                #    and (ii) that including real meta may actually
-                #    render the substitutes less effective in
-                #    specifically capturing the sim/real topics
-                #    -- probably better to ONLY use the topics,
-                #    or at least pass a flag to choose
-                # -- make sure attach region au metadata to DSBMM
-                #    nets
-                # -- check DSBMM hier trans works
-                # -- gen au_profs, edgelist for CI if not done already
-                # -- resort dPF full data: split first year of
-                #    final period off as val, rest as test
-                # for held-out time period elsewhere, then move
-                # to dpf_datadir, + split some val data off
-                # this also (maybe first year or sth), so only
-                # train gets regenerated here, along w subsetting
-                # val maybe?
+                dpf_subdir = utils.gen_dpf_data(
+                    dpf_datadir,
+                    simulation_model.aus,
+                    seed=seed,
+                    datetime_str=datetime_str,
+                    sim_tpcs=Y,
+                    window_len=window_len,
+                )
 
                 dpf_results_dir = datadir / "dpf_results"
                 dpf_results_dir.mkdir(exist_ok=True)
@@ -369,7 +368,7 @@ def main(argv):
                     "-rfreq": 10,  # check ll every 10 iterations
                     "-vprior": 10,  # prior on variance for transitions
                     "-num_threads": 64,  # number of threads to use
-                    "-tpl": 3,  # gap between time periods
+                    "-tpl": window_len,  # gap between time periods
                     # -- assume passing time in years, so this
                     # is window length in years
                     "-max-iterations": 1000,  # max EM iterations
@@ -385,49 +384,50 @@ def main(argv):
                     dsbmm_data
                 except NameError:
                     dsbmm_datadir = datadir / "dsbmm_data"
+                    dsbmm_datadir.mkdir(exist_ok=True)
                     dsbmm_data = dsbmm_data_proc.load_data(
                         dsbmm_datadir,
-                        edge_weight_choice="count",
-                        sim_tpcs=Y,
+                        edge_weight_choice=edge_weight_choice,
                     )
                     dsbmm_data = utils.subset_dsbmm_data(
                         dsbmm_data,
                         simulation_model.aus,
                         T,
+                        sim_tpcs=Y,
                         meta_choices=meta_choices,
                         remove_final=True,
                     )
 
                 if variant == "z-theta-joint":
                     # 'z-theta-joint' is DSBMM and dPF combo
-                    # TODO:
-                    # -- make sure pass correct metadata -- in particular
-                    #    final time period topics or not -- should hold out
-                    #    at least one time period if possible for eval
-                    # -- will remove very final period, so the substitutes
-                    #    are of dim T-1
-                    # -- check this works w how coded rest, + give
-                    #    option of either using Z directly or
-                    #    premultiplying w trans
-                    # -- choose Q=16 so can use hierarchical w 2 layers, 8 groups per
-                    # -- make new dir in scratch/ w DSBMM data in dsbmm_data/ subdir
-                    # -- get running
                     Z_hat_joint, Z_trans = utils.run_dsbmm(
                         dsbmm_data,
                         dsbmm_datadir,
                         Q,
                         ignore_meta=False,
                         datetime_str=dsbmm_label_str,
+                        deg_corr=deg_corr,
+                        directed=directed,
                     )
 
                     W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir, dpf_results_dir, dpf_settings, n_components=K
+                        dpf_repo_dir,
+                        dpf_results_dir,
+                        dpf_settings,
+                        n_components=K,
+                        idx_map_dir=dpf_subdir,
+                        true_N=N,
+                        true_M=M,
                     )
 
                 elif variant == "theta-only":
                     # 'theta-only' is just dPF
                     W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir, dpf_results_dir, dpf_settings, n_components=K
+                        dpf_repo_dir,
+                        dpf_results_dir,
+                        dpf_settings,
+                        n_components=K,
+                        idx_map_dir=dpf_subdir,
                     )
 
                 elif variant == "z-theta-concat":
@@ -438,10 +438,18 @@ def main(argv):
                         Q,
                         ignore_meta=True,
                         datetime_str=dsbmm_label_str,
+                        deg_corr=deg_corr,
+                        directed=directed,
                     )
 
                     W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir, dpf_results_dir, dpf_settings, n_components=K
+                        dpf_repo_dir,
+                        dpf_results_dir,
+                        dpf_settings,
+                        n_components=K,
+                        idx_map_dir=dpf_subdir,
+                        true_N=N,
+                        true_M=M,
                     )
                 else:
                     # 'z-only' is just DSBM (no meta)
@@ -451,10 +459,18 @@ def main(argv):
                         Q,
                         ignore_meta=True,
                         datetime_str=dsbmm_label_str,
+                        deg_corr=deg_corr,
+                        directed=directed,
                     )
 
                     W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir, dpf_results_dir, dpf_settings, n_components=K
+                        dpf_repo_dir,
+                        dpf_results_dir,
+                        dpf_settings,
+                        n_components=K,
+                        idx_map_dir=dpf_subdir,
+                        true_N=N,
+                        true_M=M,
                     )
 
                 Rho_hat = np.zeros((N, T, Q + K))
@@ -480,17 +496,31 @@ def main(argv):
             )
             tqdm.write("*" * 60)
             sys.stdout.flush()
-            outfile = os.path.join(
-                write, "conf=" + str((noise, confounding)) + ";conf_type=" + ct
-            )
+            outfile = write / ("conf=" + str((noise, confounding)) + ";conf_type=" + ct)
             np.savez_compressed(outfile, fitted=Beta_p, true=Beta)
 
 
 if __name__ == "__main__":
     # TODO:
-    # -- new variant options, possibly incl DC / NDC, and maybe weighted edges
-    # -- update default datadir + outdir to scratch
+    # -- will remove very final period, so the substitutes
+    #    are of dim T-1
+    # -- check this works w how coded rest, + give
+    #    option of either using Z directly or
+    #    premultiplying w trans
+    # -- make sure attach region au metadata to DSBMM
+    #    nets
+    # -- gen au_profs, edgelist for CI if not done already
+    # -- choose Q=16 so can use hierarchical w 2 layers, 8 groups per
     # -- get running
+    # -- for real data resort dPF full data: split first year of
+    #    final period off as val, rest as test
+    #    for held-out time period elsewhere, then move
+    #    to dpf_datadir, + split some val data off
+    #    this also (maybe first year or sth)
+    # -- also will need to slightly modify, as for fully held-out data should
+    #    allow substitutes to be constructed for final period -- the held-out
+    #    dPF data should have the test as held-out, val as final year / some
+    #    small amount of this BEFORE that, and DSBMM should not remove any info
     # -- see if can get sensitivity analysis also going
     # -- consider updating impl of [pif, spf, network_pref_only, topic_only]
     # models - would be good to compare to methods that treat each timestep
@@ -510,10 +540,27 @@ if __name__ == "__main__":
     )
     flags.DEFINE_string(
         "data_dir",
-        "../dat/citation/regional_subset",
+        "/scratch/fitzgeraldj/data/caus_inf_data",
         "path to author profiles and network files (edgelist)",
     )
-    flags.DEFINE_string("out_dir", "../out/", "directory to write output files to")
+    # this should contain the full dataset in the right form for CitationSimulator
+    # -- links in citation_links.npz, arr named "edge_list"
+    # -- author profiles in au_profs.pkl
+    # where files are as described in process_dataset.py
+    # Should also be subdir, datadir / "dsbmm_data" -- will be created otherwise
+    # -- if already have full dataset in DSBMM form, can upload here then
+    #    rest should run, and will produce proper data for CitationSimulator
+    #    on first run
+    # Then final subdir, datadir / "dpf_data", which may be empty
+    # -- if empty (/does not exist, in which case will be created),
+    #    will be populated with data for DPF on first run, saved
+    #    in a further subdir inside with a name according to seed
+    #    / datetime, and results saved in datadir / dpf_results
+    flags.DEFINE_string(
+        "out_dir",
+        "/scratch/fitzgeraldj/data/caus_inf_data/results",
+        "directory to write output files to",
+    )
     flags.DEFINE_string(
         "variant",
         "z-theta-joint",
@@ -592,6 +639,14 @@ if __name__ == "__main__":
         passed may be used, e.g. both weighted and
         unweighted topic columns
         """,
+    )
+    flags.DEFINE_string(
+        "edge_weight_choice",
+        "count",
+        """
+        Specify edge weight name to use, e.g. 'count' or 'weighted'
+        for edge weights in network. Default is 'count', pass
+        'none' to use unweighted (binary) network""",
     )
 
     app.run(main)
