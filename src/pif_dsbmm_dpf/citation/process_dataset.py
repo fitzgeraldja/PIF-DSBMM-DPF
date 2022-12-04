@@ -57,6 +57,8 @@ import os
 import pickle
 import sys
 from functools import reduce
+from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -87,9 +89,10 @@ class CitationSimulator:
         covar_1="region_categorical",
         covar_2="random",
         covar_2_num_cats=5,
+        save_path: Optional[Path] = None,
         **kwargs,
     ):
-        self.datapath = datapath
+        self.datapath = Path(datapath)
         self.subnetwork_size = subnetwork_size
         self.sub_testsize = sub_testsize
         self.influence_shp = influence_shp
@@ -97,6 +100,7 @@ class CitationSimulator:
         self.covar_1 = covar_1
         self.covar_2 = covar_2
         self.covar_2_num_cats = covar_2_num_cats
+        self.save_path = save_path
 
         self.parse_args(**kwargs)
 
@@ -481,6 +485,10 @@ class CitationSimulator:
         Y = self.make_mixture_preferences_outcomes(
             confounding_to_use=confounding_to_use
         )
+        if self.save_path is not None:
+            tqdm.write(f"Finished, saving to {self.save_path}...")
+            with open(self.save_path, "wb") as f:
+                pickle.dump(self, f)
         tqdm.write("Done")
         return Y
 

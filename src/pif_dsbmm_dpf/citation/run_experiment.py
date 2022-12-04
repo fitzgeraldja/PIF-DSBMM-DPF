@@ -115,39 +115,54 @@ def main(argv):
     print("Confounding configs:", confounding_configs)
     print("Model:", model)
 
+    sim_model_path = (
+        datadir
+        / f"seed{seed}_cnfdr_type{confounding_type}_cnfdr_cfg{confounding_configs}.pkl"
+    )
+
     write = outdir / (model + "." + variant + "_model_fitted_params")
     write.mkdir(exist_ok=True)
 
-    simulation_model = CitationSimulator(
-        datapath=datadir,
-        subnetwork_size=3000,
-        sub_testsize=300,
-        num_topics=1000,
-        influence_shp=influence_shp,
-        covar_2="random",
-        covar_2_num_cats=5,
-        seed=seed,
-    )
-    try:
-        simulation_model.process_dataset()
-    except FileNotFoundError:
+    if seed is not None:
         try:
-            dsbmm_datadir = datadir / "dsbmm_data"
-            dsbmm_data = dsbmm_data_proc.load_data(dsbmm_datadir)
-            dsbmm_data_proc.save_to_pif_form(
-                dsbmm_data["A"],
-                dsbmm_data["X"],
-                datadir,
-                dsbmm_data["meta_names"],
-                region_col_id=region_col_id,
-                age_col_id="career_age",
-            )
-            del dsbmm_data
-            simulation_model.process_dataset()
+            tqdm.write(f"Loading prev sim of model w same seed and configs...")
+            with open(sim_model_path, "rb") as f:
+                simulation_model: CitationSimulator = pickle.load(f)
         except FileNotFoundError:
-            raise FileNotFoundError(
-                "Data in suitable form for either PIF directly, or DSBMM, not found in specified directory."
+            tqdm.write(
+                f"Previous sim w given seed and configs not found, creating new sim..."
             )
+            simulation_model = CitationSimulator(
+                datapath=datadir,
+                subnetwork_size=3000,
+                sub_testsize=300,
+                num_topics=1000,
+                influence_shp=influence_shp,
+                covar_2="random",
+                covar_2_num_cats=5,
+                seed=seed,
+                save_path=sim_model_path,
+            )
+            try:
+                simulation_model.process_dataset()
+            except FileNotFoundError:
+                try:
+                    dsbmm_datadir = datadir / "dsbmm_data"
+                    dsbmm_data = dsbmm_data_proc.load_data(dsbmm_datadir)
+                    dsbmm_data_proc.save_to_pif_form(
+                        dsbmm_data["A"],
+                        dsbmm_data["X"],
+                        datadir,
+                        dsbmm_data["meta_names"],
+                        region_col_id=region_col_id,
+                        age_col_id="career_age",
+                    )
+                    del dsbmm_data
+                    simulation_model.process_dataset()
+                except FileNotFoundError:
+                    raise FileNotFoundError(
+                        "Data in suitable form for either PIF directly, or DSBMM, not found in specified directory."
+                    )
 
     A = simulation_model.A
     print("Adj. size and mean:", A[0].shape, [A_t.mean() for A_t in A])
