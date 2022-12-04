@@ -231,7 +231,9 @@ class CitationSimulator:
         try:
             assert self.N < self.subnetwork_size
         except AssertionError:
-            raise ValueError("Network size is smaller than desired subnetwork size.")
+            raise ValueError(
+                f"Network size is smaller than desired subnetwork size: {self.N} < {self.subnetwork_size}"
+            )
         data = [np.ones(row_inds[t].shape[0]) for t in range(self.T - 1)]
         # row_inds.shape, col_inds.shape, data.shape
         self.A = [
