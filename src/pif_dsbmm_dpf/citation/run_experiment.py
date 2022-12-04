@@ -617,10 +617,10 @@ if __name__ == "__main__":
 
     flags.DEFINE_string(
         "region_col_id",
-        "main_adm1",
+        "main_adm1_1hot",
         """
         Identifier for metadata in dsbmm-type data corresponding to 'region'
-        -- in paper, corresponds to main_adm1 or main_ctry of author
+        -- in paper, corresponds to main_adm1_1hot or main_ctry_1hot of author
         """,
     )
 
