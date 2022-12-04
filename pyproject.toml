@@ -6,7 +6,7 @@ authors = ["John Fitzgerald <j.a.fitzgerald@outlook.com>"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/fitzgeraldja/PIF-DSBMM-DPF"
 packages = [
-    { include = "pif_dsbmm_dpf", from = "src" },
+    { include = "pif_dsbmm_dpf*", from = "src" },
 ]
 
 [tool.poetry.dependencies]
