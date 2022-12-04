@@ -64,8 +64,7 @@ import tqdm
 from scipy.sparse import csr_array
 from scipy.special import expit
 from scipy.stats import bernoulli, gamma, poisson
-
-from .utils import sample_simple_markov
+from utils import sample_simple_markov
 
 
 class CitationSimulator:
