@@ -33,6 +33,7 @@ import dsbmm_bp.data_processor as dsbmm_data_proc
 import numpy as np
 import utils
 from absl import app, flags
+from process_dataset import CitationSimulator
 
 # from sklearn.metrics import mean_squared_error as mse
 from sklearn.decomposition import NMF
@@ -44,8 +45,6 @@ from pif_dsbmm_dpf.model import multi_cause_influence as causal
 from pif_dsbmm_dpf.model import network_model as nm
 from pif_dsbmm_dpf.model import pmf as pmf
 from pif_dsbmm_dpf.model import spf as spf
-
-from .process_dataset import CitationSimulator
 
 
 def post_process_influence(X, Beta):
