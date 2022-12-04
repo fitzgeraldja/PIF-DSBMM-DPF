@@ -210,9 +210,13 @@ class CitationSimulator:
                 raise ValueError(
                     "Timesteps in edgelist and author profiles do not match."
                 )
-        row_inds = [self.edgelist[time_inds == t, 0] for t in self.timesteps]
-        col_inds = [self.edgelist[time_inds == t, 1] for t in self.timesteps]
-        self.N = self.edgelist[:, :2].max() + 1
+        row_inds = [
+            self.edgelist[time_inds == t, 0].astype(int) for t in self.timesteps
+        ]
+        col_inds = [
+            self.edgelist[time_inds == t, 1].astype(int) for t in self.timesteps
+        ]
+        self.N = self.edgelist[:, :2].astype(int).max() + 1
         data = [np.ones(row_inds[t].shape[0]) for t in range(self.T - 1)]
         # row_inds.shape, col_inds.shape, data.shape
         self.A = [
