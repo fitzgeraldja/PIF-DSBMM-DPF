@@ -134,6 +134,7 @@ class CitationSimulator:
         :rtype: np.ndarray
         """
         sampled_aus = set()
+        explored_aus = set()
         test_aus = set()
         aus = np.arange(self.N)
         np.random.shuffle(aus)
@@ -142,6 +143,7 @@ class CitationSimulator:
         with tqdm(total=self.subnetwork_size, desc="Snowball samp. size:") as pbar:
             while len(sampled_aus) < self.subnetwork_size:
                 au = aus[u_iter]
+                explored_aus.add(au)
                 # get all connected aus to this au in any timeslice
                 # NB column indices for row i are stored in
                 # indices[indptr[i]:indptr[i+1]] in csr
@@ -150,24 +152,27 @@ class CitationSimulator:
                     lambda x, y: np.union1d(x, y),
                     [
                         np.union1d(
-                            A_t.indices[A_t.indptr[u_iter] : A_t.indptr[u_iter] + 1],
+                            A_t.indices[A_t.indptr[u_iter] : A_t.indptr[u_iter + 1]],
                             A_T_t.indices[
-                                A_T_t.indptr[u_iter] : A_T_t.indptr[u_iter] + 1
+                                A_T_t.indptr[u_iter] : A_T_t.indptr[u_iter + 1]
                             ],
                         )
                         for A_t, A_T_t in zip(self.A, A_T)
                     ],
                 )
-                pbar.update(len(set(list(conn_aus)) - sampled_aus))
+                new_aus = set(conn_aus) - sampled_aus
+                pbar.update(len(new_aus))
                 sampled_aus.add(au)
-                sampled_aus |= set(list(conn_aus))
+                sampled_aus |= new_aus
                 # add any sampled aus present in final time period to
                 # testset
                 test_aus |= set(self.uids[self.df_ts[-1]]) & sampled_aus
-                if conn_aus.shape[0] > 2:
-                    u_iter = np.random.choice(list(set(conn_aus) - sampled_aus))
+                unexplored_aus = new_aus - explored_aus
+                if len(unexplored_aus) > 0:
+                    # follow edge to one of these new aus
+                    u_iter = np.random.choice(list(unexplored_aus))
                 else:
-                    # insufficient outlinks found, start at new root
+                    # no new nodes found, start at new root
                     u_iter += 1
         if len(test_aus) < self.sub_testsize:
             tqdm.write(f"Warning: only {len(test_aus)} test authors sampled")
