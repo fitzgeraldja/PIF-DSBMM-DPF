@@ -121,13 +121,13 @@ class CitationSimulator:
     def snowball_sample(self):
         """Snowball sample over all timestep adjacencies
         -- at each iteration, starting from a random root author,
-        follow outward citations until reach desired subsample
-        size.
+        follow citations (in either direction) until reach desired
+        subsample size.
         -- require that sampled authors are present before final
         time period, so they are within train set at least once,
-        and that this still provides minimum specified number of
-        authors at final period (test set), where an author is
-        considered present there if we have a profile for them
+        and that warn if this fails to provide minimum specified
+        number of authors at final period (test set), where an author
+        is considered present there if we have a profile for them
         (i.e. real region data at least is available)
 
         :return: sampled_aus, subset of aus to use in experiment
@@ -145,13 +145,17 @@ class CitationSimulator:
                 # get all connected aus to this au in any timeslice
                 # NB column indices for row i are stored in
                 # indices[indptr[i]:indptr[i+1]] in csr
+                A_T = [A_t.T for A_t in self.A]
                 conn_aus = reduce(
                     lambda x, y: np.union1d(x, y),
                     [
-                        self.A[t].indices[
-                            self.A[t].indptr[u_iter] : self.A[t].indptr[u_iter] + 1
-                        ]
-                        for t in range(self.T - 1)
+                        np.union1d(
+                            A_t.indices[A_t.indptr[u_iter] : A_t.indptr[u_iter] + 1],
+                            A_T_t.indices[
+                                A_T_t.indptr[u_iter] : A_T_t.indptr[u_iter] + 1
+                            ],
+                        )
+                        for A_t, A_T_t in zip(self.A, A_T)
                     ],
                 )
                 pbar.update(len(set(list(conn_aus)) - sampled_aus))
@@ -161,7 +165,7 @@ class CitationSimulator:
                 # testset
                 test_aus |= set(self.uids[self.df_ts[-1]]) & sampled_aus
                 if conn_aus.shape[0] > 2:
-                    u_iter = np.random.choice(conn_aus)
+                    u_iter = np.random.choice(list(set(conn_aus) - sampled_aus))
                 else:
                     # insufficient outlinks found, start at new root
                     u_iter += 1
