@@ -452,9 +452,8 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
                         ) as f:
                             pickle.dump((Z_hat_joint, Z_trans), f)
-                    # consider always running dPF as separate
-                    # program means that results won't be fixed
-                    # by seed
+                    # now run dPF - likewise have set seed so should
+                    # be identical between runs
                     try:
                         with open(dpf_results_dir / dpf_res_name, "rb") as f:
                             W_hat, Theta_hat = pickle.load(f)

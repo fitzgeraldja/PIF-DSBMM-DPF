@@ -452,6 +452,7 @@ def convert_to_dpf_format(
     min_test_N: int = 300,
     window_len: int = 3,
     val_frac: float = 0.1,
+    binarise: bool = True,
 ):
     """Converts a list of sparse author-topic counts, length T, each shape
     (N,M) to dPF format -- note that by default we assume a window length
@@ -484,6 +485,8 @@ def convert_to_dpf_format(
     :param val_frac: fraction of final period data to use for validation,
                      remainder (1-test_frac) used for test, defaults to 0.1
     :type val_frac: float, optional
+    :param binarise: binarise data, as suggested for dPF, defaults to True
+    :type binarise: bool, optional
     :return: dpf_train, dpf_val, dpf_test
     :rtype: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
     """
@@ -556,6 +559,12 @@ def convert_to_dpf_format(
     )
     with open(out_dir / "au_n_tpc_maps.pkl", "wb") as f:
         pickle.dump([au_idx_map, tpc_idx_map], f)
+    if binarise:
+        dpf_train, dpf_val, dpf_test = map(
+            lambda df: df.assign(count=1),
+            [dpf_train, dpf_val, dpf_test],
+        )
+
     # finally write to new files
     for fname, df in zip(out_fnames, [dpf_train, dpf_val, dpf_test]):
         df.to_csv(fname, sep="\t", header=False, index=False)
