@@ -38,7 +38,7 @@ def sample_simple_markov(N: int, T: int, Q: int, eta: float, onehot=False):
         rands = np.random.rand(N)
         stay_idxs = rands < eta
         Z[stay_idxs, t] = Z[stay_idxs, t - 1]
-        Z[~stay_idxs, t] = np.random.randint(0, Q, size=N)
+        Z[~stay_idxs, t] = np.random.randint(0, Q, size=(~stay_idxs).sum())
     if onehot:
         Z_onehot = np_to_onehot(Z)
         return Z_onehot
