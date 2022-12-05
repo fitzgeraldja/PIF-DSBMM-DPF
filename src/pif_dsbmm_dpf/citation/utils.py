@@ -249,12 +249,14 @@ def subset_dsbmm_data(
     # bin_subset = np.isin(bin_subset, subset_aus)
     data["A"] = [A_t[np.ix_(subset_idxs, subset_idxs)] for A_t in data["A"]]
     if meta_choices is not None:
-        chosen_meta = [
-            mn
-            for mn in data["meta_names"]
-            if mn.startswith(mc)  # type:ignore
-            for mc in meta_choices
-        ]
+        chosen_meta = list(
+            {
+                mn
+                for mc in meta_choices
+                for mn in data["meta_names"]
+                if mn.startswith(mc)
+            }
+        )
         data["X"] = [
             X_s for mn, X_s in zip(data["meta_names"], data["X"]) if mn in chosen_meta
         ]
