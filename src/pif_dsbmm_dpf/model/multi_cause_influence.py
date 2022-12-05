@@ -407,13 +407,24 @@ class CausalInfluenceModel:
             # make sure no neg / zero vals in Y_t
             Y_t[Y_t < 0] = 0
             Y_t.eliminate_zeros()
-
-        return np.sum(
-            [
-                poisson.logpmf(Y_t, rate_t).sum()
-                for Y_t, rate_t in zip(Y, rate.transpose(2, 0, 1))
-            ]
-        )
+        try:
+            return np.sum(
+                [
+                    poisson.logpmf(Y_t, rate_t).sum()
+                    for Y_t, rate_t in zip(Y, rate.transpose(2, 0, 1))
+                ]
+            )
+        except NotImplementedError:
+            for t, (Y_t, rate_t) in enumerate(zip(Y, rate.transpose(2, 0, 1))):
+                try:
+                    poisson.logpmf(Y_t, rate_t).sum()
+                except NotImplementedError:
+                    tqdm.write(f"poisson.logpmf failed for t={t}")
+                    tqdm.write(f"Y_t data: {Y_t.data}")
+                    tqdm.write(f"rate_t: {rate_t}")
+                    tqdm.write(f"Y_t.sum(): {Y_t.sum()}")
+                    tqdm.write(f"rate_t.sum(): {rate_t.sum()}")
+                    raise RuntimeError("poisson.logpmf failed")
 
     def _update_gamma(self, Y, Z):
         norm_obs = [Y_t / self.normaliser for Y_t in Y]
