@@ -280,6 +280,7 @@ def subset_dsbmm_data(
         if data["X"][0].shape[1] == T:
             data["X"] = [X_s[:, :-1, :] for X_s in data["X"]]
     if save_path is not None:
+        tqdm.write(f"Saving subsetted DSBMM data to {save_path}")
         with open(save_path, "wb") as f:
             pickle.dump(data, f)
     return data
@@ -589,7 +590,7 @@ def run_dsbmm(
         )
     )
     trial_Q_settings = {k: v for k, v in dsbmm_settings.items() if k != "ret_best_only"}
-    trial_Qs = dsbmm_apply.init_trial_Qs(**trial_Q_settings)
+    trial_Qs = dsbmm_apply.init_trial_Qs(N, **trial_Q_settings)
     if (
         not (
             dsbmm_settings["min_Q"] is not None
