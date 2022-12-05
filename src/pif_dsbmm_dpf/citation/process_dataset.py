@@ -275,6 +275,8 @@ class CitationSimulator:
         num_cats = len(categories)
         one_hot_encoding = np.zeros((self.aus.shape[0], self.T, num_cats))
         tot_sub = self.au_profs.loc[self.au_profs.auid_idx.isin(self.aus), :]
+        print(tot_sub.shape)
+        print(self.au_profs.shape)
         tot_sub1hot = pd.get_dummies(tot_sub[covar])
         self.covar1_codedict = {i: c for i, c in enumerate(tot_sub1hot.columns)}
         for t, year in enumerate(self.df_ts):
