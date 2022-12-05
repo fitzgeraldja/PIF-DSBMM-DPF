@@ -583,6 +583,7 @@ def run_dsbmm(
     datetime_str=None,
     deg_corr=True,
     directed=True,
+    ret_block_probs=False,
 ):
     dsbmm_data["Q"] = Q
     Tm1 = len(dsbmm_data["A"])
@@ -590,31 +591,25 @@ def run_dsbmm(
     h_l = 2  # 2 layers
 
     # meta_names = dsbmm_data["meta_names"]
-
-    dsbmm_settings: dict[str, Union[None, bool, int, float, str]] = dict(
+    # : dict[str, Union[None, bool, int, float, str]]
+    dsbmm_settings = dict(
         ret_best_only=True,
         h_l=h_l,
         max_trials=None,
         n_runs=1,
+        num_groups=None,
+        h_Q=np.round(np.exp(np.log(Q) / h_l)).astype(int),
+        h_min_N=10,
+        min_Q=None,
+        max_Q=None,
     )
 
-    pred_Z = dsbmm_apply.init_pred_Z(N, Tm1, **dsbmm_settings)
+    pred_Z, trial_Qs = dsbmm_apply.prep_Z_and_Qs(N, Tm1, **dsbmm_settings)
     # args.h_l, default=None, max. no. layers in hier
     # args.h_Q, default=8, max. no. groups at hier layer,
     # = 4 if h_Q > N_l / 4
     # args.h_min_N, default=20, min. nodes for split
-    dsbmm_settings.update(
-        dict(
-            num_groups=None,
-            h_Q=np.round(np.exp(np.log(Q) / h_l)).astype(int),
-            h_min_N=10,
-            min_Q=None,
-            max_Q=None,
-        )
-    )
 
-    trial_Q_settings = {k: v for k, v in dsbmm_settings.items() if k != "ret_best_only"}
-    trial_Qs = dsbmm_apply.init_trial_Qs(N, **trial_Q_settings)
     if (
         not (
             dsbmm_settings["min_Q"] is not None
@@ -662,6 +657,7 @@ def run_dsbmm(
         ret_Z=True,
         ret_probs=True,
         ret_trans=True,
+        ret_block_probs=ret_block_probs,
         save_to_file=True,
         **dsbmm_settings,
     )

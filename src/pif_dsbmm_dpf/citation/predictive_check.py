@@ -360,7 +360,7 @@ def main():
                 datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
                 dsbmm_res_str = f"{sim_model_path.stem}_{datetime_str}"
                 tqdm.write("Running DSBMM")
-                Z_hat_joint, _ = utils.run_dsbmm(
+                Z_hat_joint, _, block_probs = utils.run_dsbmm(
                     dsbmm_data,
                     dsbmm_datadir,
                     Q,
@@ -368,6 +368,7 @@ def main():
                     datetime_str=dsbmm_res_str,
                     deg_corr=True,
                     directed=True,
+                    ret_block_probs=True,
                 )
 
                 tqdm.write("Running dPF")
@@ -381,7 +382,10 @@ def main():
                 )
 
                 A_logll_heldout, A_logll_replicated = calculate_ppc_dsbmm(
-                    masked_friends, A, Z_hat_joint, Z_hat_joint
+                    masked_friends,
+                    A,
+                    Z_hat_joint,
+                    block_probs,
                 )
                 Y_logll_heldout, Y_logll_replicated = calculate_ppc_dpf(
                     past_masked_topics, Y[:-1], Theta_hat, W_hat

@@ -1,31 +1,36 @@
-import argparse
 import os
 import sys
-from itertools import product
 
 import model.joint_factor_model as joint
 import model.multi_cause_influence as causal
-import model.network_model as nm
-import model.pmf as pmf
-import model.spf as spf
+
+# import model.network_model as nm
+# import model.pmf as pmf
+# import model.spf as spf
 import numpy as np
 from absl import app, flags
 from citation.process_dataset import CitationSimulator
-from sklearn.decomposition import NMF
 from sklearn.metrics import mean_squared_error as mse
 
 
 def post_process_influence(X, Beta):
-    total_X = X.sum(axis=1)
-    no_X = total_X == 0
-    Beta[no_X] = 1.0
+    for t, X_t in enumerate(X):
+        total_X = X_t.sum(axis=1)
+        no_X = total_X == 0
+        Beta[no_X, t] = 1.0
     return Beta
 
 
 def get_set_overlap(Beta_p, Beta, k=50):
-    top = np.argsort(Beta)[-k:]
-    top_p = np.argsort(Beta_p)[-k:]
-    return np.intersect1d(top, top_p).shape[0] / np.union1d(top, top_p).shape[0]
+    scores = np.zeros(Beta.shape[1])
+    for t, (beta_pt, beta_t) in enumerate(zip(Beta_p.T, Beta.T)):
+        top = np.argsort(beta_t)[-k:]
+        top_p = np.argsort(beta_pt)[-k:]
+
+        scores[t] = (
+            np.intersect1d(top, top_p).shape[0] / np.union1d(top, top_p).shape[0]
+        )
+    return scores
 
 
 def main(argv):
@@ -33,8 +38,8 @@ def main(argv):
     outdir = FLAGS.out_dir
     os.makedirs(outdir, exist_ok=True)
 
-    K = FLAGS.num_components
-    P = FLAGS.num_exog_components
+    Q = FLAGS.num_components
+    K = FLAGS.num_exog_components
     seed = FLAGS.seed
 
     ct = "both"
