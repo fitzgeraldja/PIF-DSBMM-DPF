@@ -602,6 +602,7 @@ def run_dsbmm(
     deg_corr=True,
     directed=True,
     ret_block_probs=False,
+    use_1hot_Z=False,
 ):
     dsbmm_data["Q"] = Q
     Tm1 = len(dsbmm_data["A"])
@@ -672,8 +673,8 @@ def run_dsbmm(
         trial_Qs,
         hierarchy_layers,
         RESULTS_DIR,
-        ret_Z=True,
-        ret_probs=True,
+        ret_Z=use_1hot_Z,
+        ret_probs=not use_1hot_Z,
         ret_trans=True,
         ret_block_probs=ret_block_probs,
         save_to_file=True,
