@@ -427,7 +427,9 @@ class CausalInfluenceModel:
         )
 
     def _update_gamma(self, Y, Z):
-        norm_obs = [Y_t / self.normaliser for Y_t in Y]
+        norm_obs = [
+            Y_t / norm_t for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
+        ]
         # want (\sum_t) \sum_i gamma_term_{mtq} z_{itq} y_{im}^t
         if self.time_homog:
             expected_aux = self.gamma_term * reduce(
@@ -454,7 +456,9 @@ class CausalInfluenceModel:
         )
 
     def _update_alpha(self, Y, W):
-        norm_obs = [Y_t / self.normaliser for Y_t in Y]
+        norm_obs = [
+            Y_t / norm_t for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
+        ]
         # want (\sum_t) \sum_m alpha_term_{itq} w_{mtq} y_{im}^t
         if self.time_homog:
             expected_aux = self.alpha_term * reduce(
@@ -481,7 +485,9 @@ class CausalInfluenceModel:
         )
 
     def _update_beta(self, Y, Y_past, A):
-        norm_obs = [Y_t / self.normaliser for Y_t in Y]
+        norm_obs = [
+            Y_t / norm_t for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
+        ]
         # want (\sum_t) beta_term_{i,t-1} \sum_{j,m} y_{jm}^t a_{ji,t-1} y_{im}^{t-1}
         if self.time_homog:
             expected_aux = self.beta_term * reduce(
