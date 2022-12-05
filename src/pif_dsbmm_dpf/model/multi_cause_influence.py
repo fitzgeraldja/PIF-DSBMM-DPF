@@ -202,7 +202,9 @@ class CausalInfluenceModel:
     def _compute_expectations(self, shp, rte):
         return special.psi(shp) - np.log(rte), shp / rte
 
-    def _compute_terms_and_normalizers(self, A, Y_past, Y, Z, W):
+    def _compute_terms_and_normalizers(
+        self, A, Y_past, Y, Z, W, Z_trans=None, use_old_subs=True
+    ):
         """Compute terms necessary for SVI updates of params
 
         :param A: Network (A^{t-1} for us), list of T-1 sparse matrices, each shape (N,N), or (N,N,T-1) if array (not currently handled)
@@ -213,6 +215,12 @@ class CausalInfluenceModel:
         :type Z: np.ndarray
         :param W: Substitute inferred for topic confounder at current timestep, shape (N,T-1,K)
         :type W: np.ndarray
+        :param Z_trans: Transition matrix for topic-link confounder, shape (Q,Q)
+        :type Z_trans: np.ndarray, optional
+        :param use_old_subs: Either use the old substitutes (default), or point
+                             estimates of the new ones, using pi*Z^{t-1} for DSBMM and
+                             \\mu_{v_k} + v_{k,t-1} for dPF
+        :type use_old_subs: bool, optional
         """
         # NB all these terms will be time-varying even if fitting time-homogeneous params, as the network and topics themselves
         # are time-varying
@@ -240,6 +248,18 @@ class CausalInfluenceModel:
                 ],
                 axis=-1,
             )
+
+        if not use_old_subs:
+            try:
+                assert Z_trans is not None
+            except AssertionError:
+                raise ValueError("Must pass Z_trans if want to use updated subs")
+            Z = np.einsum("qr,ntq->ntr", Z_trans, Z)
+            # NB no need to do update for W if dPF and only
+            # using point estimates, as would only use
+            # v_{k,t-1} = \hat{v}_{k,t-1} - \mu_{v_k}
+            # then the update would return \hat{v}_{k,t-1}
+            # anyway
 
         preference_component = 1e-10
 
@@ -316,13 +336,16 @@ class CausalInfluenceModel:
 
         if self.time_homog:
             influence_rate = np.stack(
-                [(self.E_beta * A_t) @ Ytm1 for A_t, Ytm1 in zip(A, Y_past)],
+                [
+                    (self.E_beta[np.newaxis, :] * A_t) @ Ytm1
+                    for A_t, Ytm1 in zip(A, Y_past)
+                ],
                 axis=-1,
             )
         else:
             influence_rate = np.stack(
                 [
-                    (beta_t * A_t) @ Ytm1
+                    (beta_t[np.newaxis, :] * A_t) @ Ytm1
                     for beta_t, A_t, Ytm1 in zip(self.E_beta.T, A, Y_past)
                 ],
                 axis=-1,
@@ -448,7 +471,7 @@ class CausalInfluenceModel:
             self.beta_shape, self.beta_rates
         )
 
-    def fit(self, Y, A, Z, W, Y_past, Z_trans):
+    def fit(self, Y, A, Z, W, Y_past, Z_trans=None, use_old_subs=True):
         T = len(Y)
         N, M = Y[0].shape
         T += 1
@@ -483,7 +506,9 @@ class CausalInfluenceModel:
         self._init_expectations()
 
         old_bd = float("-inf")
-        bd = self._compute_elbo(Y, A, Y_past, Z, W, Z_trans)
+        bd = self._compute_elbo(
+            Y, A, Y_past, Z, W, Z_trans=Z_trans, use_old_subs=use_old_subs
+        )
 
         for i in range(self.max_iter):
             if self.verbose:
@@ -492,7 +517,9 @@ class CausalInfluenceModel:
 
             old_bd = bd
 
-            self._compute_terms_and_normalizers(A, Y_past, Y, Z, W)
+            self._compute_terms_and_normalizers(
+                A, Y_past, Y, Z, W, Z_trans=Z_trans, use_old_subs=use_old_subs
+            )
             self._update_beta(Y, Y_past, A)
             if self.mode == "network_preferences":
                 self._update_gamma(Y, Z)
@@ -504,7 +531,9 @@ class CausalInfluenceModel:
                 self._update_gamma(Y, Z)
                 self._update_alpha(Y, W)
 
-            bd = self._compute_elbo(Y, A, Y_past, Z, W, Z_trans)
+            bd = self._compute_elbo(
+                Y, A, Y_past, Z, W, Z_trans=Z_trans, use_old_subs=use_old_subs
+            )
 
             if (bd - old_bd) / abs(old_bd) < self.tol:
                 print(old_bd, bd)
