@@ -445,6 +445,10 @@ def main(argv):
                             deg_corr=deg_corr,
                             directed=directed,
                         )
+                        with open(
+                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
+                        ) as f:
+                            pickle.dump((Z_hat_joint, Z_trans), f)
                     tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
@@ -486,6 +490,10 @@ def main(argv):
                             deg_corr=deg_corr,
                             directed=directed,
                         )
+                        with open(
+                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
+                        ) as f:
+                            pickle.dump((Z_hat_joint, Z_trans), f)
                     tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
@@ -515,6 +523,10 @@ def main(argv):
                             deg_corr=deg_corr,
                             directed=directed,
                         )
+                        with open(
+                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
+                        ) as f:
+                            pickle.dump((Z_hat_joint, Z_trans), f)
                     tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
