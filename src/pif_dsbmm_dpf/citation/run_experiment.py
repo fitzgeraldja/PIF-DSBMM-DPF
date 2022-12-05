@@ -98,17 +98,16 @@ def main(argv):
     if edge_weight_choice == "none":
         edge_weight_choice = None
 
+    confounding_type = confounding_type.split(",")
+    confounding_configs = [
+        (int(c.split(",")[0]), int(c.split(",")[1])) for c in configs.split(":")
+    ]
     datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
     base_sim_str = f"cnfdr_type{confounding_type}_cnfdr_cfg{confounding_configs}"
     if seed is not None:
         sim_model_str = f"seed{seed}_{base_sim_str}"
     else:
         sim_model_str = f"{datetime_str}_{base_sim_str}"
-
-    confounding_type = confounding_type.split(",")
-    confounding_configs = [
-        (int(c.split(",")[0]), int(c.split(",")[1])) for c in configs.split(":")
-    ]
 
     window_len = 3  # set window length for dPF
 
@@ -367,7 +366,7 @@ def main(argv):
                 dpf_subdir = utils.gen_dpf_data(
                     dpf_datadir,
                     simulation_model.aus,
-                    sim_id=sim_model_path.stem,
+                    sim_id=sim_model_str,
                     datetime_str=datetime_str,
                     sim_tpcs=Y,
                     window_len=window_len,
