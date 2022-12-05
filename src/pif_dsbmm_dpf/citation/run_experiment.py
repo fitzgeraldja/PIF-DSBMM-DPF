@@ -86,6 +86,8 @@ def main(argv):
     seed = FLAGS.seed
     influence_shp = FLAGS.influence_strength
 
+    use_old_subs = FLAGS.use_old_subs
+
     region_col_id = FLAGS.region_col_id
     meta_choices = FLAGS.meta_choice
     if meta_choices == "topics_only":
@@ -512,7 +514,15 @@ def main(argv):
                 else:
                     Rho_hat[:, :Q] = Z_hat_joint
 
-                m.fit(Y[1:], A, Rho_hat, W_hat, Y[:-1], Z_trans=Z_trans)
+                m.fit(
+                    Y[1:],
+                    A,
+                    Rho_hat,
+                    W_hat,
+                    Y[:-1],
+                    Z_trans=Z_trans,
+                    use_old_subs=use_old_subs,
+                )
 
             Beta_p = m.E_beta
             scores = get_set_overlap(Beta_p, Beta)
@@ -523,7 +533,7 @@ def main(argv):
             tqdm.write(
                 f"Overlaps: {np.round(scores,3)}, \nMSE: {loss:np.round(loss,3)}"
             )
-            tqdm.write("*" * 60)
+            tqdm.write(f"{'*' * 60}")
             sys.stdout.flush()
             outfile = write / ("conf=" + str((noise, confounding)) + ";conf_type=" + ct)
             np.savez_compressed(outfile, fitted=Beta_p, true=Beta)
@@ -531,12 +541,9 @@ def main(argv):
 
 if __name__ == "__main__":
     # TODO:
-    # -- will remove very final period, so the substitutes
-    #    are of dim T-1
-    # -- check this works w how coded rest, + give
-    #    option of either using Z directly or
-    #    premultiplying w trans
+    # -- add flag for using trans updated Z
     # -- get running
+    # -- write shell script to run w other vars
 
     # -- for real data resort dPF full data: split first year of
     #    final period off as val, rest as test
@@ -677,5 +684,11 @@ if __name__ == "__main__":
         for edge weights in network. Default is 'count', pass
         'none' to use unweighted (binary) network""",
     )
-
+    flags.DEFINE_bool(
+        "use_old_subs",
+        True,
+        "Use old substitutes (i.e. those from previous time period) in DSBMM",
+    )  # NB this will require being passed as either
+    # --flag (meaning true), or --noflag (meaning false)
+    # if passing explicitly for flag
     app.run(main)
