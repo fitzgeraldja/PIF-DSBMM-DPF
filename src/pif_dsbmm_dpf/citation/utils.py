@@ -295,8 +295,16 @@ def subset_dsbmm_data(
 
     # now clean subset of meta according to specified dists
     tmp_meta_dims = [X_s.shape[-1] for X_s in data["X"]]
+    max_cats = 30
+    tqdm.write("Cleaning metadata of subset")
+    if "indep bernoulli" in data["meta_types"]:
+        tqdm.write(f"fixing that any author has at most {max_cats} categories")
     data["X"] = clean_meta(
-        data["meta_names"], data["meta_types"], tmp_meta_dims, data["X"], max_cats=30
+        data["meta_names"],
+        data["meta_types"],
+        tmp_meta_dims,
+        data["X"],
+        max_cats=max_cats,
     )
     if save_path is not None:
         tqdm.write(f"Saving subsetted DSBMM data to {save_path}")
