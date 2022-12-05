@@ -537,7 +537,7 @@ class CitationSimulator:
         if self.do_sensitivity:
             bias = self.create_bias()
             # influence rate for i at t then just
-            # \sum_j a_{ij}^{t-1} y_{jk}^{t-1}
+            # \sum_j a_{ij}^{t-1} \beta_j^{t-1} y_{jk}^{t-1}
             # for t=0 only use base rate, then generate rest sequentially
             y_tm1 = csr_array(
                 poisson.rvs(base_rate[..., 0] + bias[..., 0]), shape=(N, M)
@@ -546,9 +546,9 @@ class CitationSimulator:
             pres_tpcs |= set(np.flatnonzero(y_tm1.sum(axis=0)))
             y = [y_tm1]
             for t in range(self.T - 1):
-                influence_rate = (self.beta[:, t] * self.A[t]) @ y_tm1
+                influence_rate = (self.beta[np.newaxis, :, t] * self.A[t]) @ y_tm1
                 y_tm1 = csr_array(
-                    poisson.rvs(base_rate + influence_rate + bias[..., t + 1]),
+                    poisson.rvs(base_rate[..., t] + influence_rate + bias[..., t + 1]),
                     shape=(N, M),
                 )
                 if t == self.T - 2:
@@ -563,9 +563,9 @@ class CitationSimulator:
             y_tm1 = csr_array(poisson.rvs(base_rate[..., 0]), shape=(N, M))
             y = [y_tm1]
             for t in range(self.T - 1):
-                influence_rate = (self.beta[:, t] * self.A[t]) @ y_tm1
+                influence_rate = (self.beta[np.newaxis, :, t] * self.A[t]) @ y_tm1
                 y_tm1 = csr_array(
-                    poisson.rvs(base_rate + influence_rate),
+                    poisson.rvs(base_rate[..., t] + influence_rate),
                     shape=(N, M),
                 )
                 y.append(y_tm1)
