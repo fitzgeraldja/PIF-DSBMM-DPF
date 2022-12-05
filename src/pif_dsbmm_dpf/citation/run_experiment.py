@@ -627,6 +627,10 @@ if __name__ == "__main__":
     # -- consider updating impl of [pif, spf, network_pref_only, topic_only]
     #    models - would be good to compare to methods that treat each timestep
     #    separately, and should genuinely be fairly small modifications needed
+    # -- handle final period properly - this might be used when observing completely held-out data,
+    #    for which we don't have any confounder substitutes. Somewhat dubious using substitutes fit on the
+    #    full data anyway, but otherwise would have to fit separate confounders on every subset here...
+    #    Feel that observing performance on fully held-out data is reasonable compromise.
     FLAGS = flags.FLAGS
     flags.DEFINE_string(
         "model",

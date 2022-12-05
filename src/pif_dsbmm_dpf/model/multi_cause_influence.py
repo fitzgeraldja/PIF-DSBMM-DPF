@@ -337,7 +337,7 @@ class CausalInfluenceModel:
         if self.time_homog:
             influence_rate = np.stack(
                 [
-                    (self.E_beta[np.newaxis, :] * A_t) @ Ytm1
+                    ((self.E_beta[np.newaxis, :] * A_t) @ Ytm1).toarray()
                     for A_t, Ytm1 in zip(A, Y_past)
                 ],
                 axis=-1,
@@ -345,7 +345,7 @@ class CausalInfluenceModel:
         else:
             influence_rate = np.stack(
                 [
-                    (beta_t[np.newaxis, :] * A_t) @ Ytm1
+                    ((beta_t[np.newaxis, :] * A_t) @ Ytm1).toarray()
                     for beta_t, A_t, Ytm1 in zip(self.E_beta.T, A, Y_past)
                 ],
                 axis=-1,
@@ -384,10 +384,6 @@ class CausalInfluenceModel:
                 pref_rate = np.einsum("itq,mtq->imt", Z, self.E_gamma) + np.einsum(
                     "itq,mtq->imt", self.E_alpha, W
                 )
-        # TODO: handle final period properly - this might be used when observing completely held-out data,
-        # for which we don't have any confounder substitutes. Somewhat dubious using substitutes fit on the
-        # full data anyway, but otherwise would have to fit separate confounders on every subset here...
-        # Feel that observing performance on fully held-out data is reasonable compromise.
 
         rate = influence_rate + pref_rate
         return poisson.logpmf(Y, rate).sum()
@@ -399,14 +395,14 @@ class CausalInfluenceModel:
             expected_aux = self.gamma_term * reduce(
                 lambda x, y: x + y,
                 [
-                    (nrm_ob_t.T @ z_t)
+                    (nrm_ob_t.T @ z_t).toarray()
                     for nrm_ob_t, z_t in zip(norm_obs, Z.transpose(1, 0, 2))
                 ],
             )
         else:
             expected_aux = self.gamma_term * np.stack(
                 [
-                    (nrm_ob_t.T @ z_t)
+                    (nrm_ob_t.T @ z_t).toarray()
                     for nrm_ob_t, z_t in zip(
                         norm_obs,
                         Z.transpose(1, 0, 2),
@@ -426,14 +422,14 @@ class CausalInfluenceModel:
             expected_aux = self.alpha_term * reduce(
                 lambda x, y: x + y,
                 [
-                    (nrm_ob_t @ w_t)
+                    (nrm_ob_t @ w_t).toarray()
                     for nrm_ob_t, w_t in zip(norm_obs, W.transpose(1, 0, 2))
                 ],
             )
         else:
             expected_aux = self.alpha_term * np.stack(
                 [
-                    (nrm_ob_t @ w_t)
+                    (nrm_ob_t @ w_t).toarray()
                     for nrm_ob_t, w_t in zip(
                         norm_obs,
                         W.transpose(1, 0, 2),
@@ -453,7 +449,7 @@ class CausalInfluenceModel:
             expected_aux = self.beta_term * reduce(
                 lambda x, y: x + y,
                 [
-                    ytm1 @ (nrm_ob_t.T @ A_t.T)
+                    (ytm1 @ (nrm_ob_t.T @ A_t.T)).toarray()
                     for nrm_ob_t, A_t, ytm1 in zip(norm_obs, A, Y_past)
                 ],
             )
@@ -461,7 +457,7 @@ class CausalInfluenceModel:
         else:
             expected_aux = self.beta_term * np.stack(
                 [
-                    ytm1 @ (nrm_ob_t.T @ A_t.T)
+                    (ytm1 @ (nrm_ob_t.T @ A_t.T)).toarray()
                     for nrm_ob_t, A_t, ytm1 in zip(norm_obs, A, Y_past)
                 ],
                 axis=1,
