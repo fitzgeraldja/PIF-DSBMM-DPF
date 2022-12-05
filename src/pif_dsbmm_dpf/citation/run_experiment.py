@@ -244,8 +244,8 @@ def main(argv):
                 )
 
             elif model == "no_unobs":
-                num_regions = Z.shape[1]
-                num_covar_comps = W.shape[1]
+                num_regions = Z.shape[-1]
+                num_covar_comps = W.shape[-1]
                 m = causal.CausalInfluenceModel(
                     n_components=num_regions,
                     n_exog_components=num_covar_comps,
@@ -254,8 +254,8 @@ def main(argv):
                 )
 
             elif model == "topic_only_oracle":
-                num_regions = Z.shape[1]
-                num_covar_comps = W.shape[1]
+                num_regions = Z.shape[-1]
+                num_covar_comps = W.shape[-1]
                 m = causal.CausalInfluenceModel(
                     n_components=num_regions,
                     n_exog_components=num_covar_comps,
@@ -264,8 +264,8 @@ def main(argv):
                 )
 
             elif model == "network_only_oracle":
-                num_regions = Z.shape[1]
-                num_covar_comps = W.shape[1]
+                num_regions = Z.shape[-1]
+                num_covar_comps = W.shape[-1]
                 m = causal.CausalInfluenceModel(
                     n_components=num_regions,
                     n_exog_components=num_covar_comps,
