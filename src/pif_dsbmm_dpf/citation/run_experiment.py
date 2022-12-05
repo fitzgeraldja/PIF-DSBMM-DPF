@@ -612,6 +612,7 @@ if __name__ == "__main__":
     # -- as for theirs, let run 10 times for each, with
     #    different random seeds
     # -- see if can get sensitivity analysis also going
+    # -- sort PPCs -- very long!
 
     # -- for real data resort dPF full data: split first year of
     #    final period off as val, rest as test

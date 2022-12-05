@@ -98,7 +98,7 @@ def get_dpf_res_dir(dpf_settings):
             # if (dynamic_user_and_item_representations)
             #     sa << "-dui";
             "dui",
-            "nthreads" + str(dpf_settings["-nthreads"]),
+            "nthreads" + str(dpf_settings["-num_threads"]),
             # assume not fixing item params
             # if (fixed_item_param)
             #     sa << "-fip";

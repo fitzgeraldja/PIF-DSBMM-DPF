@@ -17,14 +17,78 @@ from sklearn.metrics import mean_squared_error as mse
 from sklearn.metrics import roc_auc_score
 
 
-def calculate_ppc(items, array, z, w):
-    users = np.arange(array.shape[0])
-    rates = z.dot(w.T)[users, items]
+def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta):
+    r"""Compute the predictive probability of the heldout items.
+    Should be applied separately for network confounder and
+    item confounder models -- the likelihood of each are
+    different. This func is for item substitute -- the dPF.
+
+    If a model reproduces the data well, then the probability
+    of observing the actual heldout items should be similar
+    to the probability of observing the replicated items.
+
+    Under dPF, given user factors theta and item factors beta,
+    shape (N,T,K) and (M,T,K) resp., the probability of
+    observing a publication by user i on item m at t
+    is Poisson(\sum_k exp(theta_{ik}^t) * exp(beta_{mk}^t)),
+    so can calc rates given theta and beta, then calc logpmf.
+
+    :param heldout_idxs: indices of heldout items
+    :type heldout_idxs: tuple(np.ndarray, np.ndarray, np.ndarray)
+    :param obs_y: actual observed user-item counts, shape (N,M,T)
+    :type obs_y: np.ndarray
+    :param theta: user factors inferred by dPF, shape (N,T,K)
+    :type theta: np.ndarray
+    :param beta: item factors inferred by dPF, shape (M,T,K)
+    :type beta: np.ndarray
+    :return: logll_heldout, logll_replicated
+    :rtype: tuple(float, float)
+    """
+    expbeta, exptheta = np.exp(beta), np.exp(theta)
+    rates = np.einsum("itk,mtk->imt", exptheta, expbeta)
+    rates = rates[heldout_idxs]
     replicated = poisson.rvs(rates)
-    heldout = array[users, items]
+    heldout = obs_y[heldout_idxs]
     logll_heldout = poisson.logpmf(heldout, rates).sum()
     logll_replicated = poisson.logpmf(replicated, rates).sum()
     return logll_heldout, logll_replicated
+
+
+def calculate_ppc_dsbmm(
+    heldout_idxs,
+    obs_a,
+    node_probs: np.ndarray,
+    block_probs: np.ndarray,
+    deg_corr=True,
+    directed=False,
+):
+    """Compute the predictive probability of the heldout edges.
+    This func is for user-item substitute -- the DSBMM.
+
+    See thesis for prob of edges under DSBMM.
+
+    :param heldout_idxs: indices of heldout edges at each timestep
+    :type heldout_idxs: list[tuple(np.ndarray, np.ndarray)]
+    :param obs_a: actual observed adjacencies, length T list of (N,N)
+                  sparse csr_arrays
+    :type obs_a: list[sparse.csr_array]
+    :param node_probs: node group marginal probs, shape (N,T,Q)
+    :type node_probs: np.ndarray
+    :param block_probs: block probs, shape (Q,Q,T)
+    :type block_probs: np.ndarray
+    :param deg_corr: use degree corrected version, defaults to True
+    :type deg_corr: bool, optional
+    :param directed: use directed version, defaults to False
+    :type directed: bool, optional
+    :return: logll_heldout, logll_replicated
+    :rtype: tuple(float, float)
+    """
+
+    # replicated = pass
+    heldout = [obs[idxs] for obs, idxs in zip(obs_a, heldout_idxs)]
+    # logll_heldout = poisson.logpmf(heldout, rates).sum()
+    # logll_replicated = poisson.logpmf(replicated, rates).sum()
+    # return logll_heldout, logll_replicated
 
 
 def evaluate_random_subset(items, array, z, w, metric="logll"):
