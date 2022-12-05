@@ -279,9 +279,15 @@ class CitationSimulator:
         self.covar1_codedict = {i: c for i, c in enumerate(tot_sub1hot.columns)}
         for t, year in enumerate(self.df_ts):
             pres_u = np.isin(self.aus, self.uids[year].values)
-            one_hot_encoding[pres_u, t, :] = tot_sub1hot.loc[
-                tot_sub.windowed_year == year, :
-            ].values
+            try:
+                one_hot_encoding[pres_u, t, :] = tot_sub1hot.loc[
+                    tot_sub.windowed_year == year, :
+                ].values
+            except ValueError:
+                print(t)
+                print(len(pres_u))
+                print((tot_sub.windowed_year == year).sum())
+                raise ValueError("Something went wrong with one-hot encoding.")
             # u_idx = np.arange(self.aus.shape[0])
             # # not guaranteed that every author that gets cited has a profile
             # # available at every timestep, so must take subset
