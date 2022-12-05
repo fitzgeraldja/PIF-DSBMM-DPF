@@ -427,16 +427,24 @@ def main(argv):
                 dsbmm_res_str = f"{sim_model_str}_{'dc' if deg_corr else 'ndc'}_{'dir' if directed else 'undir'}_{'meta' if variant=='z-theta-joint' else 'nometa'}"
                 if variant == "z-theta-joint":
                     # 'z-theta-joint' is DSBMM and dPF combo
-                    tqdm.write("Running DSBMM")
-                    Z_hat_joint, Z_trans = utils.run_dsbmm(
-                        dsbmm_data,
-                        dsbmm_datadir,
-                        Q,
-                        ignore_meta=False,
-                        datetime_str=dsbmm_res_str,
-                        deg_corr=deg_corr,
-                        directed=directed,
-                    )
+                    try:
+                        tqdm.write("Loading DSBMM results for given config")
+                        with open(
+                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
+                        ) as f:
+                            Z_hat_joint, Z_trans = pickle.load(f)
+                    except FileNotFoundError:
+                        # only run if not already done
+                        tqdm.write("Running DSBMM")
+                        Z_hat_joint, Z_trans = utils.run_dsbmm(
+                            dsbmm_data,
+                            dsbmm_datadir,
+                            Q,
+                            ignore_meta=False,
+                            datetime_str=dsbmm_res_str,
+                            deg_corr=deg_corr,
+                            directed=directed,
+                        )
                     tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
@@ -461,16 +469,23 @@ def main(argv):
 
                 elif variant == "z-theta-concat":
                     #  'z-theta-concat' is DSBM (no meta) and dPF combo
-                    tqdm.write("Running DSBM (no meta)")
-                    Z_hat, Z_trans = utils.run_dsbmm(
-                        dsbmm_data,
-                        dsbmm_datadir,
-                        Q,
-                        ignore_meta=True,
-                        datetime_str=dsbmm_res_str,
-                        deg_corr=deg_corr,
-                        directed=directed,
-                    )
+                    try:
+                        tqdm.write("Loading DSBM results for given config")
+                        with open(
+                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
+                        ) as f:
+                            Z_hat_joint, Z_trans = pickle.load(f)
+                    except FileNotFoundError:
+                        tqdm.write("Running DSBM (no meta)")
+                        Z_hat, Z_trans = utils.run_dsbmm(
+                            dsbmm_data,
+                            dsbmm_datadir,
+                            Q,
+                            ignore_meta=True,
+                            datetime_str=dsbmm_res_str,
+                            deg_corr=deg_corr,
+                            directed=directed,
+                        )
                     tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
@@ -483,16 +498,23 @@ def main(argv):
                     )
                 else:
                     # 'z-only' is just DSBM (no meta)
-                    tqdm.write("Running DSBM (no meta)")
-                    Z_hat, Z_trans = utils.run_dsbmm(
-                        dsbmm_data,
-                        dsbmm_datadir,
-                        Q,
-                        ignore_meta=True,
-                        datetime_str=dsbmm_res_str,
-                        deg_corr=deg_corr,
-                        directed=directed,
-                    )
+                    try:
+                        tqdm.write("Loading DSBM results for given config")
+                        with open(
+                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
+                        ) as f:
+                            Z_hat_joint, Z_trans = pickle.load(f)
+                    except FileNotFoundError:
+                        tqdm.write("Running DSBM (no meta)")
+                        Z_hat, Z_trans = utils.run_dsbmm(
+                            dsbmm_data,
+                            dsbmm_datadir,
+                            Q,
+                            ignore_meta=True,
+                            datetime_str=dsbmm_res_str,
+                            deg_corr=deg_corr,
+                            directed=directed,
+                        )
                     tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
