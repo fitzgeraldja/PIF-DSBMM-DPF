@@ -10,7 +10,7 @@ import model.pmf as pmf
 import model.spf as spf
 import numpy as np
 from absl import app, flags
-from pokec.process_dataset import PokecSimulator
+from citation.process_dataset import CitationSimulator
 from sklearn.decomposition import NMF
 from sklearn.metrics import mean_squared_error as mse
 
@@ -43,10 +43,10 @@ def main(argv):
     losses = np.zeros(10)
 
     for i, error in enumerate(np.arange(0.1, 1.1, step=0.1)):
-        simulation_model = PokecSimulator(
+        simulation_model = CitationSimulator(
             datapath=datadir,
             subnetwork_size=3000,
-            num_items=3000,
+            num_topics=3000,
             influence_shp=0.001,
             covar_2="random",
             covar_2_num_cats=5,
@@ -70,10 +70,10 @@ def main(argv):
         )
 
         Beta = simulation_model.beta
-        Z = simulation_model.user_embed_1
-        Gamma = simulation_model.item_embed_1
-        Alpha = simulation_model.user_embed_2
-        W = simulation_model.item_embed_2
+        Z = simulation_model.au_embed_1
+        Gamma = simulation_model.topic_embed_1
+        Alpha = simulation_model.au_embed_2
+        W = simulation_model.topic_embed_2
 
         Beta = post_process_influence(Y_past, Beta)
 
@@ -99,7 +99,7 @@ def main(argv):
         loss = mse(Beta, Beta_p)
 
         print("Overlap:", score, "MSE:", loss)
-        print("*" * 60)
+        print(f"{'*' * 60}")
         sys.stdout.flush()
         losses[i] = loss
 
@@ -109,7 +109,7 @@ def main(argv):
 
 if __name__ == "__main__":
     FLAGS = flags.FLAGS
-    # flags.DEFINE_string('model', 'pif', "method to use selected from one of [pif, spf, unadjusted, network_pref_only, item_only, item_only_oracle, network_only_oracle, no_unobs (gold standard)]")
+    # flags.DEFINE_string('model', 'pif', "method to use selected from one of [pif, spf, unadjusted, network_pref_only, topic_only, topic_only_oracle, network_only_oracle, no_unobs (gold standard)]")
     flags.DEFINE_string(
         "data_dir",
         "../dat/pokec/regional_subset",
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     flags.DEFINE_integer(
         "num_exog_components",
         10,
-        "number of components to use to fit factor model for per-item substitutes",
+        "number of components to use to fit factor model for per-topic substitutes",
     )
     flags.DEFINE_integer(
         "seed", 10, "random seed passed to simulator in each experiment"

@@ -655,6 +655,7 @@ def run_dsbmm(
     if len(node_probs.shape) == 4:
         assert node_probs.shape[0] == 1
         node_probs = node_probs.squeeze(0)
+        pi = pi[0]
     if node_probs.shape[-1] != Q:
         if node_probs.shape[-1] < Q:
             dim_diff = Q - node_probs.shape[-1]

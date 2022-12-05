@@ -7,7 +7,7 @@ import model.multi_cause_influence as causal
 import model.network_model as nm
 import model.pmf as pmf
 import numpy as np
-from pokec.process_dataset import (
+from citation.process_dataset import (
     make_multi_covariate_simulation,
     process_dataset_multi_covariate,
 )
@@ -59,7 +59,7 @@ def main():
         A, users, user_one_hots, item_one_hots, Beta = process_dataset_multi_covariate(
             datapath=datadir,
             sample_size=3000,
-            num_items=3000,
+            num_items=1000,
             influence_shp=0.005,
             covar_2="random",
             covar_2_num_cats=5,

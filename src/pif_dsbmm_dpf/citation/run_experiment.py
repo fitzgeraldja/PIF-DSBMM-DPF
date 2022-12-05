@@ -541,7 +541,6 @@ def main(argv):
 
 if __name__ == "__main__":
     # TODO:
-    # -- add flag for using trans updated Z
     # -- get running
     # -- write shell script to run w other vars
 
