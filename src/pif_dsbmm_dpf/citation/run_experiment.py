@@ -399,25 +399,25 @@ def main(argv):
                 except NameError:
                     dsbmm_datadir = datadir / "dsbmm_data"
                     dsbmm_datadir.mkdir(exist_ok=True)
-                    try:
-                        with open(
-                            dsbmm_datadir / f"{sim_model_str}_dsbmm_data.pkl", "rb"
-                        ) as f:
-                            dsbmm_data = pickle.load(f)
-                    except FileNotFoundError:
-                        dsbmm_data = dsbmm_data_proc.load_data(
-                            dsbmm_datadir,
-                            edge_weight_choice=edge_weight_choice,
-                        )
-                        dsbmm_data = utils.subset_dsbmm_data(
-                            dsbmm_data,
-                            simulation_model.aus,
-                            T,
-                            sim_tpcs=Y,
-                            meta_choices=meta_choices,
-                            remove_final=True,
-                            save_path=dsbmm_datadir / f"{sim_model_str}_dsbmm_data.pkl",
-                        )
+                    # try:
+                    #     with open(
+                    #         dsbmm_datadir / f"{sim_model_str}_dsbmm_data.pkl", "rb"
+                    #     ) as f:
+                    #         dsbmm_data = pickle.load(f)
+                    # except FileNotFoundError:
+                    dsbmm_data = dsbmm_data_proc.load_data(
+                        dsbmm_datadir,
+                        edge_weight_choice=edge_weight_choice,
+                    )
+                    dsbmm_data = utils.subset_dsbmm_data(
+                        dsbmm_data,
+                        simulation_model.aus,
+                        T,
+                        sim_tpcs=Y,
+                        meta_choices=meta_choices,
+                        remove_final=True,
+                        save_path=dsbmm_datadir / f"{sim_model_str}_dsbmm_data.pkl",
+                    )
 
                 if variant == "z-theta-joint":
                     # 'z-theta-joint' is DSBMM and dPF combo
