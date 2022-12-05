@@ -333,15 +333,16 @@ def main(argv):
             #     W_hat = pmf_model.Eb.T
             #     Theta_hat = pmf_model.Et
 
-            # Rho_hat = np.zeros((N, T, Q + K))
+            # Rho_hat = np.zeros((N, T - 1, Q + K))
             # if variant == "z-only":
-            #     Rho_hat[:, :Q] = Z_hat
-            # elif variant == "theta-only":
-            #     Rho_hat[:, :K] = Theta_hat
-            # elif variant == "z-theta-concat":
-            #     Rho_hat = np.column_stack((Z_hat, Theta_hat))
-            # else:
-            #     Rho_hat[:, :Q] = Z_hat_joint
+            #         Rho_hat[:, :, :Q] = Z_hat
+            #     elif variant == "theta-only":
+            #         Rho_hat[:, :, :K] = Theta_hat
+            #     elif variant == "z-theta-concat":
+            #         Rho_hat[:, :, :Q] = Z_hat
+            #         Rho_hat[:, :, Q:] = Theta_hat
+            #     else:
+            #         Rho_hat[:, :, :Q] = Z_hat_joint
 
             # m.fit(Y[1:], A, Rho_hat, W_hat, Y[:-1])
 
@@ -569,15 +570,16 @@ def main(argv):
                         with open(dpf_results_dir / dpf_res_name, "wb") as f:
                             pickle.dump((W_hat, Theta_hat), f)
 
-                Rho_hat = np.zeros((N, T, Q + K))
+                Rho_hat = np.zeros((N, T - 1, Q + K))
                 if variant == "z-only":
-                    Rho_hat[:, :Q] = Z_hat
+                    Rho_hat[:, :, :Q] = Z_hat
                 elif variant == "theta-only":
-                    Rho_hat[:, :K] = Theta_hat
+                    Rho_hat[:, :, :K] = Theta_hat
                 elif variant == "z-theta-concat":
-                    Rho_hat = np.column_stack((Z_hat, Theta_hat))
+                    Rho_hat[:, :, :Q] = Z_hat
+                    Rho_hat[:, :, Q:] = Theta_hat
                 else:
-                    Rho_hat[:, :Q] = Z_hat_joint
+                    Rho_hat[:, :, :Q] = Z_hat_joint
 
                 m.fit(
                     Y[1:],
