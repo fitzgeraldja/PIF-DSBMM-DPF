@@ -553,6 +553,7 @@ def run_dsbmm(
     dsbmm_datadir: Path,
     Q: int,
     ignore_meta=False,
+    datetime_str=None,
     deg_corr=True,
     directed=True,
 ):
@@ -615,6 +616,7 @@ def run_dsbmm(
             partial_informative_dsbmm_init=True,
             planted_p=0.7,
             auto_tune=True,
+            datetime_str=datetime_str,
         )
     )
     pred_Z, node_probs, pi = dsbmm_apply.run_hier_model(
