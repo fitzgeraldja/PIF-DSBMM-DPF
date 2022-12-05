@@ -432,14 +432,14 @@ class CitationSimulator:
         self.make_adj_matrix()
         # snowball subsample roughly specified number of authors
         self.aus = self.snowball_sample()
-        tqdm.write("Constructed adjacency matrix and subsampled")
+        # tqdm.write("Constructed adjacency matrix and subsampled")
 
         # restrict adjacencies to these aus
         self.A = [A_t[self.aus, :] for A_t in self.A]
         self.A = [A_t[:, self.aus] for A_t in self.A]
 
         self.au_one_hot_covar_1 = self.get_one_hot_covariate_encoding(self.covar_1)
-        tqdm.write(f"Generated {self.covar_1} au covariate")
+        # tqdm.write(f"Generated {self.covar_1} au covariate")
         if self.covar_2 == "career_age_binned":
             self.au_one_hot_covar_2 = self.get_one_hot_covariate_encoding(self.covar_2)
         else:
@@ -449,7 +449,7 @@ class CitationSimulator:
                 mode=self.rand_cv_mode,
                 eta=self.rand_cv_eta,
             )
-        tqdm.write(f"Generated {self.covar_2} au covariate")
+        # tqdm.write(f"Generated {self.covar_2} au covariate")
 
         num_regions = self.au_one_hot_covar_1.shape[-1]
         num_cats = self.covar_2_num_cats
@@ -461,13 +461,13 @@ class CitationSimulator:
             self.num_topics,
             mode="stable",
         )
-        tqdm.write(f"Generated {self.covar_1} tpc covariate")
+        # tqdm.write(f"Generated {self.covar_1} tpc covariate")
         # use same mode for topic rand cv as au rand cv
         self.topic_one_hot_covar_2 = self.sample_random_covariate(
             num_cats, self.num_topics, mode=self.rand_cv_mode, eta=self.rand_cv_eta
         )
-        tqdm.write(f"Generated {self.covar_2} tpc covariate")
-        tqdm.write("Simulating influence...")
+        # tqdm.write(f"Generated {self.covar_2} tpc covariate")
+        # tqdm.write("Simulating influence...")
         self.beta: np.ndarray = self.make_simulated_influence()
         no_cit_aus = np.stack([A_t.sum(axis=0) == 0 for A_t in self.A], axis=1)
         self.beta[no_cit_aus] = 1.0
@@ -483,7 +483,7 @@ class CitationSimulator:
         covar_1_num_cats = self.au_one_hot_covar_1.shape[-1]
         covar_2_num_cats = self.covar_2_num_cats
 
-        tqdm.write("Simulating embeddings...")
+        # tqdm.write("Simulating embeddings...")
         self.au_embed_1, self.topic_embed_1 = self.make_embeddings(
             self.au_one_hot_covar_1,
             self.topic_one_hot_covar_1,
@@ -493,9 +493,9 @@ class CitationSimulator:
             gamma_mean=gamma_mean,
             gamma_scale=gamma_scale,
         )
-        tqdm.write(
-            f"Done for {self.covar_1}, now simulating {self.covar_2} embeddings..."
-        )
+        # tqdm.write(
+        #     f"Done for {self.covar_1}, now simulating {self.covar_2} embeddings..."
+        # )
         self.au_embed_2, self.topic_embed_2 = self.make_embeddings(
             self.au_one_hot_covar_2,
             self.topic_one_hot_covar_2,
@@ -505,16 +505,16 @@ class CitationSimulator:
             gamma_mean=gamma_mean,
             gamma_scale=gamma_scale,
         )
-        tqdm.write("Done")
-        tqdm.write("Finally simulating publication topics...")
+        # tqdm.write("Done")
+        # tqdm.write("Finally simulating publication topics...")
         Y = self.make_mixture_preferences_outcomes(
             confounding_to_use=confounding_to_use
         )
         if self.save_path is not None:
-            tqdm.write(f"Finished, saving to {self.save_path}...")
+            tqdm.write(f"Saving semi-synth data to {self.save_path}")
             with open(self.save_path, "wb") as f:
                 pickle.dump(self, f)
-        tqdm.write("Done")
+        # tqdm.write("Done")
         return Y
 
     def make_mixture_preferences_outcomes(self, confounding_to_use):
