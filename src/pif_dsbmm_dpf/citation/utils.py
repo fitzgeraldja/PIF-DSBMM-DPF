@@ -298,7 +298,9 @@ def subset_dsbmm_data(
     max_cats = 30
     tqdm.write("Cleaning metadata of subset")
     if "indep bernoulli" in data["meta_types"]:
-        tqdm.write(f"fixing that any author has at most {max_cats} categories")
+        tqdm.write(
+            f"fixing that any author has at most {max_cats} categories for IB metadata"
+        )
     data["X"] = clean_meta(
         data["meta_names"],
         data["meta_types"],
