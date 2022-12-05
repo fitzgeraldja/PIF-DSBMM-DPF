@@ -309,28 +309,28 @@ def gen_dpf_data(
     subdir.mkdir(exist_ok=True)
     end_names = ["train.tsv", "validation.tsv", "test.tsv"]
     sub_fnames = list(map(lambda x: subdir / x, end_names))
-    try:
-        dpf_train, dpf_val, dpf_test = map(
-            lambda fname: pd.read_csv(
-                fname,
-                sep="\t",
-                header=None,
-                names=["auid_idx", "tpc_idx", "count", "windowed_year"],
-            ),
-            sub_fnames,
+    # try:
+    #     dpf_train, dpf_val, dpf_test = map(
+    #         lambda fname: pd.read_csv(
+    #             fname,
+    #             sep="\t",
+    #             header=None,
+    #             names=["auid_idx", "tpc_idx", "count", "windowed_year"],
+    #         ),
+    #         sub_fnames,
+    #     )
+    # except FileNotFoundError:
+    tqdm.write(f"No preexisting dpf subset data found for {subdir_str}")
+    tqdm.write("Generating...")
+    if sim_tpcs is None:
+        dpf_train, dpf_val, dpf_test = gen_subset_dpf(
+            dpf_datadir, subset_idxs, subdir, window_len=window_len
         )
-    except FileNotFoundError:
-        tqdm.write(f"No preexisting dpf subset data found for {subdir_str}")
-        tqdm.write("Generating...")
-        if sim_tpcs is None:
-            dpf_train, dpf_val, dpf_test = gen_subset_dpf(
-                dpf_datadir, subset_idxs, subdir, window_len=window_len
-            )
-        else:
-            dpf_train, dpf_val, dpf_test = convert_to_dpf_format(
-                sim_tpcs, subdir, window_len=window_len
-            )
-        tqdm.write("Done.")
+    else:
+        dpf_train, dpf_val, dpf_test = convert_to_dpf_format(
+            sim_tpcs, subdir, window_len=window_len
+        )
+    tqdm.write("Done.")
     tqdm.write(
         f"In dPF data, train, val, test contain {len(dpf_train)}, {len(dpf_val)}, {len(dpf_test)} records resp."
     )
@@ -407,16 +407,17 @@ def gen_subset_dpf(
         ],
     )
     # require that val,test aus + tpcs were present in train set
+    dpf_train = dpf_train.astype(int)
     train_aus = np.unique(dpf_train.auid_idx.values)
     train_tpcs = np.unique(dpf_train.tpc_idx.values)
     dpf_val = dpf_val[
         np.isin(dpf_val.auid_idx.values, train_aus)
         & np.isin(dpf_val.tpc_idx.values, train_tpcs)
-    ]
+    ].astype(int)
     dpf_test = dpf_test[
         np.isin(dpf_test.auid_idx.values, train_aus)
         & np.isin(dpf_test.tpc_idx.values, train_tpcs)
-    ]
+    ].astype(int)
     if len(dpf_train) < min_train_N:
         tqdm.write(
             f"Warning, train set likely too small: only {len(dpf_train)} records"
@@ -427,8 +428,8 @@ def gen_subset_dpf(
         tqdm.write(f"Warning, test set likely too small: only {len(dpf_test)} records")
 
     # now need to reindex aus, tpcs for dPF to work
-    au_idx_map = dict(zip(train_aus, np.arange(len(train_aus))))
-    tpc_idx_map = dict(zip(train_tpcs, np.arange(len(train_tpcs))))
+    au_idx_map = dict(zip(train_aus, np.arange(len(train_aus), dtype=int)))
+    tpc_idx_map = dict(zip(train_tpcs, np.arange(len(train_tpcs), dtype=int)))
 
     dpf_train, dpf_val, dpf_test = map(
         lambda df: df.replace({"auid_idx": au_idx_map, "tpc_idx": tpc_idx_map}),
@@ -530,16 +531,17 @@ def convert_to_dpf_format(
     # ensured that authors in final period are present previously, but
     # keep for consistency
     # require that val,test aus + tpcs were present in train set
+    dpf_train = dpf_train.astype(int)
     train_aus = np.unique(dpf_train.auid_idx.values)
     train_tpcs = np.unique(dpf_train.tpc_idx.values)
     dpf_val = dpf_val[
         np.isin(dpf_val.auid_idx.values, train_aus)
         & np.isin(dpf_val.tpc_idx.values, train_tpcs)
-    ]
+    ].astype(int)
     dpf_test = dpf_test[
         np.isin(dpf_test.auid_idx.values, train_aus)
         & np.isin(dpf_test.tpc_idx.values, train_tpcs)
-    ]
+    ].astype(int)
     if len(dpf_train) < min_train_N:
         tqdm.write(
             f"Warning, train set likely too small: only {len(dpf_train)} records"
@@ -550,8 +552,8 @@ def convert_to_dpf_format(
         tqdm.write(f"Warning, test set likely too small: only {len(dpf_test)} records")
 
     # now need to reindex aus, tpcs for dPF to work
-    au_idx_map = dict(zip(train_aus, np.arange(len(train_aus))))
-    tpc_idx_map = dict(zip(train_tpcs, np.arange(len(train_tpcs))))
+    au_idx_map = dict(zip(train_aus, np.arange(len(train_aus), dtype=int)))
+    tpc_idx_map = dict(zip(train_tpcs, np.arange(len(train_tpcs), dtype=int)))
 
     dpf_train, dpf_val, dpf_test = map(
         lambda df: df.replace({"auid_idx": au_idx_map, "tpc_idx": tpc_idx_map}),
