@@ -671,9 +671,15 @@ def run_dsbmm(
                 node_probs = node_probs[:, :, group_probs > 0]
             if node_probs.shape[-1] > Q:
                 # actually fit extra groups, so need to remove
-                main_qs = np.argsort()[-Q:]
+                tqdm.write(f"Fit {node_probs.shape[-1]} groups, but only {Q} requested")
+                tqdm.write("Removing extra groups")
+                main_qs = np.argsort(group_probs)[-Q:]
                 node_probs = node_probs[..., main_qs]
-                pi = pi[np.ix_(main_qs, main_qs)]
+                try:
+                    pi = pi[np.ix_(main_qs, main_qs)]
+                except:
+                    print(pi.shape, main_qs.shape, main_qs)
+                    print(group_probs)
     return node_probs, pi
 
 
