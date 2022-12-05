@@ -261,6 +261,11 @@ def subset_dsbmm_data(
         data["X"] = [
             X_s for mn, X_s in zip(data["meta_names"], data["X"]) if mn in chosen_meta
         ]
+        data["meta_types"] = [
+            mt
+            for mt, mn in zip(data["meta_types"], data["meta_names"])
+            if mn in chosen_meta
+        ]
     data["X"] = [X_s[subset_idxs, ...] for X_s in data["X"]]
     if sim_tpcs is not None:
         # NB ordering should already have been done by subsetting, so
@@ -273,6 +278,7 @@ def subset_dsbmm_data(
             # remove any other topic features
             for tpc_idx in tpc_idxs[1:]:
                 data["X"].pop(tpc_idx)
+                data["meta_types"].pop(tpc_idx)
     if remove_final:
         # remove knowledge of final timestep
         if len(data["A"]) == T:
