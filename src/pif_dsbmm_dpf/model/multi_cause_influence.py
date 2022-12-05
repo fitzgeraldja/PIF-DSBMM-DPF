@@ -238,12 +238,16 @@ class CausalInfluenceModel:
             # -- also makes clear reason for snowball sampling only, as otherwise NM gets very large even without enormous number of
             # items, so fills memory even if computations are relatively fast, as this isn't possible given dense params
             influence_component = np.stack(
-                [(self.beta_term * A_t) @ Ytm1 for A_t, Ytm1 in zip(A, Y_past)], axis=-1
+                [
+                    ((self.beta_term * A_t) @ Ytm1).toarray()
+                    for A_t, Ytm1 in zip(A, Y_past)
+                ],
+                axis=-1,
             )
         else:
             influence_component = np.stack(
                 [
-                    (beta_t * A_t) @ Ytm1
+                    ((beta_t * A_t) @ Ytm1).toarray()
                     for beta_t, A_t, Ytm1 in zip(self.beta_term.T, A, Y_past)
                 ],
                 axis=-1,
@@ -412,28 +416,15 @@ class CausalInfluenceModel:
                 tqdm.write(f"found {np.sum(Y_t.data == 0)} Y_t == 0 -- will drop")
                 Y_t[Y_t == 0] = 0
                 Y_t.eliminate_zeros()
-        try:
-            return np.sum(
-                [
-                    poisson.logpmf(Y_t, rate_t).sum()
-                    for Y_t, rate_t in zip(Y, rate.transpose(2, 0, 1))
-                ]
-            )
-        except NotImplementedError:
-            for t, (Y_t, rate_t) in enumerate(zip(Y, rate.transpose(2, 0, 1))):
-                try:
-                    # problem may be using sparse in general -- try only op
-                    # over non-zero entries
-                    return np.sum(
-                        [poisson.logpmf(Y_t.data, rate_t[Y_t.nonzero()]).sum()]
-                    )
-                except NotImplementedError:
-                    tqdm.write(f"poisson.logpmf failed for t={t}")
-                    tqdm.write(f"Y_t data: {Y_t.data}")
-                    tqdm.write(f"rate_t: {rate_t}")
-                    tqdm.write(f"Y_t.sum(): {Y_t.sum()}")
-                    tqdm.write(f"rate_t.sum(): {rate_t.sum()}")
-                    raise RuntimeError("poisson.logpmf failed")
+
+        # can't directly use sparse in logpmf -- instead only op
+        # over non-zero entries
+        return np.sum(
+            [
+                poisson.logpmf(Y_t.data, rate_t[Y_t.nonzero()]).sum()
+                for Y_t, rate_t in zip(Y, rate.transpose(2, 0, 1))
+            ]
+        )
 
     def _update_gamma(self, Y, Z):
         norm_obs = [Y_t / self.normaliser for Y_t in Y]
