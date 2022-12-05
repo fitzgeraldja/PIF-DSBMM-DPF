@@ -617,7 +617,7 @@ def run_dsbmm(
     dsbmm_settings = {k: v for k, v in dsbmm_settings.items() if k not in rmv_keys}
     dsbmm_settings.update(
         dict(
-            verbose=True,
+            verbose=False,
             link_choice="count",
             tuning_param=1.0,
             learning_rate=0.2,
