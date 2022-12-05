@@ -351,6 +351,12 @@ class CausalInfluenceModel:
                 axis=-1,
             )
         pref_rate = 1e-10
+        # NB could have neg Z from missing nodes in DSBMM, in which case should
+        # set to zero
+        if np.sum(Z < 0) > 0:
+            tqdm.write(f"found {np.sum(Z < 0)} Z < 0 -- setting to 0")
+            Z[Z < 0] = 0
+
         if not use_old_subs:
             try:
                 assert Z_trans is not None
@@ -386,6 +392,11 @@ class CausalInfluenceModel:
                 )
 
         rate = influence_rate + pref_rate
+        for Y_t in Y:
+            # make sure no neg / zero vals in Y_t
+            Y_t[Y_t < 0] = 0
+            Y_t.eliminate_zeros()
+
         return np.sum(
             [
                 poisson.logpmf(Y_t, rate_t).sum()
