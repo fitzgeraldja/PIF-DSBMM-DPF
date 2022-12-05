@@ -652,6 +652,9 @@ def run_dsbmm(
     # TODO: consider trying with one-hot factors
     # from pred_Z also
     # Z_hat(_joint) = node_probs  # in shape (N,T,Q)
+    if len(node_probs.shape) == 4:
+        assert node_probs.shape[0] == 1
+        node_probs = node_probs.squeeze(0)
     if node_probs.shape[-1] != Q:
         if node_probs.shape[-1] < Q:
             dim_diff = Q - node_probs.shape[-1]

@@ -283,7 +283,7 @@ class CausalInfluenceModel:
         self.normaliser = preference_component + influence_component
 
     ##for now, this will simply return log likelihood under the Poisson model for Y
-    def _compute_elbo(self, Y, A, Y_past, Z, W, Z_trans):
+    def _compute_elbo(self, Y, A, Y_past, Z, W, Z_trans=None, use_old_subs=True):
         """Compute the ELBO for all observed data
         -- just compute the \\mu_{ik}^t
         = \alpha_i^{t,\top}\tau_k^t
@@ -304,7 +304,11 @@ class CausalInfluenceModel:
         so need to take expectation over trans for final period
         :type W: np.ndarray
         :param Z_trans: Transition matrix for topic-link confounder, shape (Q,Q)
-        :type Z_trans: np.ndarray
+        :type Z_trans: np.ndarray, optional
+        :param use_old_subs: Either use the old substitutes (default), or point
+                             estimates of the new ones, using pi*Z^{t-1} for DSBMM and
+                             \\mu_{v_k} + v_{k,t-1} for dPF
+        :type use_old_subs: bool, optional
 
         :return: ELBO
         :rtype: float
@@ -324,6 +328,17 @@ class CausalInfluenceModel:
                 axis=-1,
             )
         pref_rate = 1e-10
+        if not use_old_subs:
+            try:
+                assert Z_trans is not None
+            except AssertionError:
+                raise ValueError("Must pass Z_trans if want to use updated subs")
+            Z = np.einsum("qr,ntq->ntr", Z_trans, Z)
+            # NB no need to do update for W if dPF and only
+            # using point estimates, as would only use
+            # v_{k,t-1} = \hat{v}_{k,t-1} - \mu_{v_k}
+            # then the update would return \hat{v}_{k,t-1}
+            # anyway
 
         if self.mode == "network_preferences":
             if self.time_homog:

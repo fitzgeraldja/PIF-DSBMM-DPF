@@ -512,7 +512,7 @@ def main(argv):
                 else:
                     Rho_hat[:, :Q] = Z_hat_joint
 
-                m.fit(Y[1:], A, Rho_hat, W_hat, Y[:-1], Z_trans)
+                m.fit(Y[1:], A, Rho_hat, W_hat, Y[:-1], Z_trans=Z_trans)
 
             Beta_p = m.E_beta
             scores = get_set_overlap(Beta_p, Beta)
@@ -536,9 +536,8 @@ if __name__ == "__main__":
     # -- check this works w how coded rest, + give
     #    option of either using Z directly or
     #    premultiplying w trans
-    # -- gen au_profs, edgelist for CI if not done already
-    # -- choose Q=16 so can use hierarchical w 2 layers, 8 groups per
     # -- get running
+
     # -- for real data resort dPF full data: split first year of
     #    final period off as val, rest as test
     #    for held-out time period elsewhere, then move
@@ -550,8 +549,8 @@ if __name__ == "__main__":
     #    small amount of this BEFORE that, and DSBMM should not remove any info
     # -- see if can get sensitivity analysis also going
     # -- consider updating impl of [pif, spf, network_pref_only, topic_only]
-    # models - would be good to compare to methods that treat each timestep
-    # separately, and should genuinely be fairly small modifications needed
+    #    models - would be good to compare to methods that treat each timestep
+    #    separately, and should genuinely be fairly small modifications needed
     FLAGS = flags.FLAGS
     flags.DEFINE_string(
         "model",
@@ -623,10 +622,10 @@ if __name__ == "__main__":
     )
     flags.DEFINE_integer(
         "num_components",
-        10,
+        16,
         """
         number of components to use to fit factor model for
-        per-author substitutes, default 10
+        per-author substitutes, default 16
         """,
     )
     flags.DEFINE_integer(
