@@ -455,7 +455,6 @@ def main(argv):
                         dpf_repo_dir,
                         dpf_results_dir,
                         dpf_settings,
-                        n_components=K,
                         idx_map_dir=dpf_subdir,
                         true_N=N,
                         true_M=M,
@@ -468,7 +467,6 @@ def main(argv):
                         dpf_repo_dir,
                         dpf_results_dir,
                         dpf_settings,
-                        n_components=K,
                         idx_map_dir=dpf_subdir,
                     )
 
@@ -500,7 +498,6 @@ def main(argv):
                         dpf_repo_dir,
                         dpf_results_dir,
                         dpf_settings,
-                        n_components=K,
                         idx_map_dir=dpf_subdir,
                         true_N=N,
                         true_M=M,
@@ -533,7 +530,6 @@ def main(argv):
                         dpf_repo_dir,
                         dpf_results_dir,
                         dpf_settings,
-                        n_components=K,
                         idx_map_dir=dpf_subdir,
                         true_N=N,
                         true_M=M,
