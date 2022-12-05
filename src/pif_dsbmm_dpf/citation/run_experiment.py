@@ -166,7 +166,7 @@ def main(argv):
                     )
 
     A = simulation_model.A
-    print("Adj. size and mean:", A[0].shape, [A_t.mean() for A_t in A])
+    print(f"Adj. size and mean: {A[0].shape}, {[f'{A_t.mean():.3g}' for A_t in A]}")
     print(f"T: {len(A)+1}")
 
     for ct in tqdm(confounding_type, desc="Confounding type", position=0):

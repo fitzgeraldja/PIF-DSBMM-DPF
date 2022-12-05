@@ -480,7 +480,7 @@ class CitationSimulator:
         gamma_scale=0.1,
         confounding_to_use="both",
     ):
-        covar_1_num_cats = self.au_one_hot_covar_1.shape[1]
+        covar_1_num_cats = self.au_one_hot_covar_1.shape[-1]
         covar_2_num_cats = self.covar_2_num_cats
 
         tqdm.write("Simulating embeddings...")
