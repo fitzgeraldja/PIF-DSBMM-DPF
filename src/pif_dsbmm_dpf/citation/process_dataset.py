@@ -469,7 +469,7 @@ class CitationSimulator:
         tqdm.write(f"Generated {self.covar_2} tpc covariate")
         tqdm.write("Simulating influence...")
         self.beta: np.ndarray = self.make_simulated_influence()
-        no_cit_aus = np.stack([A_t.sum(axis=0) == 0 for A_t in self.A])
+        no_cit_aus = np.stack([A_t.sum(axis=0) == 0 for A_t in self.A], axis=1)
         self.beta[no_cit_aus] = 1.0
 
     def make_multi_covariate_simulation(
