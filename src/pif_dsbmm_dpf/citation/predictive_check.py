@@ -327,28 +327,27 @@ def main():
             except NameError:
                 dsbmm_datadir = datadir / "dsbmm_data"
                 dsbmm_datadir.mkdir(exist_ok=True)
-                try:
-                    tqdm.write("Loading DSBMM data for given config")
-                    with open(
-                        dsbmm_datadir / f"{sim_model_path.stem}_dsbmm_data.pkl", "rb"
-                    ) as f:
-                        dsbmm_data = pickle.load(f)
-                except FileNotFoundError:
-                    tqdm.write("DSBMM data for given config not found, generating...")
-                    dsbmm_data = dsbmm_data_proc.load_data(
-                        dsbmm_datadir,
-                        edge_weight_choice="count",
-                    )
-                    dsbmm_data = utils.subset_dsbmm_data(
-                        dsbmm_data,
-                        simulation_model.aus,
-                        T,
-                        sim_tpcs=Y,
-                        meta_choices="tpc_",
-                        remove_final=True,
-                        save_path=dsbmm_datadir
-                        / f"{sim_model_path.stem}_dsbmm_data.pkl",
-                    )
+                # try:
+                #     tqdm.write("Loading DSBMM data for given config")
+                #     with open(
+                #         dsbmm_datadir / f"{sim_model_path.stem}_dsbmm_data.pkl", "rb"
+                #     ) as f:
+                #         dsbmm_data = pickle.load(f)
+                # except FileNotFoundError:
+                tqdm.write("DSBMM data for given config not found, generating...")
+                dsbmm_data = dsbmm_data_proc.load_data(
+                    dsbmm_datadir,
+                    edge_weight_choice="count",
+                )
+                dsbmm_data = utils.subset_dsbmm_data(
+                    dsbmm_data,
+                    simulation_model.aus,
+                    T,
+                    sim_tpcs=Y,
+                    meta_choices="tpc_",
+                    remove_final=True,
+                    save_path=dsbmm_datadir / f"{sim_model_path.stem}_dsbmm_data.pkl",
+                )
 
             replicates = 20
             A_predictive_score = 0.0
