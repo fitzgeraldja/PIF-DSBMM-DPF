@@ -99,7 +99,11 @@ def main(argv):
         edge_weight_choice = None
 
     datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
-    dsbmm_label_str = f"seed{seed}_{datetime_str}" if seed is not None else datetime_str
+    base_sim_str = f"cnfdr_type{confounding_type}_cnfdr_cfg{confounding_configs}"
+    if seed is not None:
+        sim_model_str = f"seed{seed}_{base_sim_str}"
+    else:
+        sim_model_str = f"{datetime_str}_{base_sim_str}"
 
     confounding_type = confounding_type.split(",")
     confounding_configs = [
@@ -116,10 +120,7 @@ def main(argv):
     print("Confounding configs:", confounding_configs)
     print("Model:", model)
 
-    sim_model_path = (
-        datadir
-        / f"seed{seed}_cnfdr_type{confounding_type}_cnfdr_cfg{confounding_configs}.pkl"
-    )
+    sim_model_path = datadir / f"{sim_model_str}.pkl"
 
     write = outdir / (model + "." + variant + "_model_fitted_params")
     write.mkdir(exist_ok=True)
@@ -399,18 +400,25 @@ def main(argv):
                 except NameError:
                     dsbmm_datadir = datadir / "dsbmm_data"
                     dsbmm_datadir.mkdir(exist_ok=True)
-                    dsbmm_data = dsbmm_data_proc.load_data(
-                        dsbmm_datadir,
-                        edge_weight_choice=edge_weight_choice,
-                    )
-                    dsbmm_data = utils.subset_dsbmm_data(
-                        dsbmm_data,
-                        simulation_model.aus,
-                        T,
-                        sim_tpcs=Y,
-                        meta_choices=meta_choices,
-                        remove_final=True,
-                    )
+                    try:
+                        with open(
+                            dsbmm_datadir / f"{sim_model_str}_dsbmm_data.pkl", "rb"
+                        ) as f:
+                            dsbmm_data = pickle.load(f)
+                    except FileNotFoundError:
+                        dsbmm_data = dsbmm_data_proc.load_data(
+                            dsbmm_datadir,
+                            edge_weight_choice=edge_weight_choice,
+                        )
+                        dsbmm_data = utils.subset_dsbmm_data(
+                            dsbmm_data,
+                            simulation_model.aus,
+                            T,
+                            sim_tpcs=Y,
+                            meta_choices=meta_choices,
+                            remove_final=True,
+                            save_path=dsbmm_datadir / f"{sim_model_str}_dsbmm_data.pkl",
+                        )
 
                 if variant == "z-theta-joint":
                     # 'z-theta-joint' is DSBMM and dPF combo
@@ -419,7 +427,7 @@ def main(argv):
                         dsbmm_datadir,
                         Q,
                         ignore_meta=False,
-                        datetime_str=dsbmm_label_str,
+                        datetime_str=sim_model_str,
                         deg_corr=deg_corr,
                         directed=directed,
                     )
@@ -451,7 +459,7 @@ def main(argv):
                         dsbmm_datadir,
                         Q,
                         ignore_meta=True,
-                        datetime_str=dsbmm_label_str,
+                        datetime_str=sim_model_str,
                         deg_corr=deg_corr,
                         directed=directed,
                     )
@@ -472,7 +480,7 @@ def main(argv):
                         dsbmm_datadir,
                         Q,
                         ignore_meta=True,
-                        datetime_str=dsbmm_label_str,
+                        datetime_str=sim_model_str,
                         deg_corr=deg_corr,
                         directed=directed,
                     )

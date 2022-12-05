@@ -243,6 +243,7 @@ def subset_dsbmm_data(
     sim_tpcs: Optional[list[sparse.csr_array]] = None,
     meta_choices: Optional[list[str]] = None,
     remove_final=True,
+    save_path: Optional[Path] = None,
 ):
     # N = data["A"][0].shape[0]
     # bin_subset = np.arange(N)
@@ -278,6 +279,9 @@ def subset_dsbmm_data(
             data["A"] = data["A"][:-1]
         if data["X"][0].shape[1] == T:
             data["X"] = [X_s[:, :-1, :] for X_s in data["X"]]
+    if save_path is not None:
+        with open(save_path, "wb") as f:
+            pickle.dump(data, f)
     return data
 
 
@@ -291,6 +295,7 @@ def gen_dpf_data(
 ):
     subdir_str = sim_id if sim_id is not None else f"init:{datetime_str}"
     subdir = dpf_datadir / subdir_str
+    subdir.mkdir(exist_ok=True)
     end_names = ["train.tsv", "validation.tsv", "test.tsv"]
     sub_fnames = list(map(lambda x: subdir / x, end_names))
     try:
@@ -306,7 +311,6 @@ def gen_dpf_data(
     except FileNotFoundError:
         tqdm.write(f"No preexisting dpf subset data found for {subdir_str}")
         tqdm.write("Generating...")
-        subdir.mkdir(exist_ok=True)
         if sim_tpcs is None:
             dpf_train, dpf_val, dpf_test = gen_subset_dpf(
                 dpf_datadir, subset_idxs, subdir, window_len=window_len
