@@ -149,6 +149,7 @@ def run_dpf(
     # network to generate such features
     # this may not be necessary / could
     # deteriorate performance
+    K = int(dpf_settings["-k"])
     beta_files = sorted(
         run_res_dir.glob("beta_*[0-9].tsv"),
         key=lambda x: int(str(x.stem).split("_")[-1]),
@@ -159,7 +160,7 @@ def run_dpf(
                 lambda fname: pd.read_csv(
                     fname,
                     header=None,
-                    names=["idx0", "idx1", *list(range(dpf_settings["-k"]))],
+                    names=["idx0", "idx1", *list(range(K))],
                     usecols=lambda name: "idx" not in str(name),
                     sep="\t",
                 ).values,
@@ -172,7 +173,7 @@ def run_dpf(
     glob_beta = pd.read_csv(
         glob_beta_file,
         header=None,
-        names=["idx0", "idx1", *list(range(dpf_settings["-k"]))],
+        names=["idx0", "idx1", *list(range(K))],
         usecols=lambda name: "idx" not in str(name),
         sep="\t",
     ).values
@@ -188,7 +189,7 @@ def run_dpf(
                 lambda fname: pd.read_csv(
                     fname,
                     header=None,
-                    names=["idx0", "idx1", *list(range(dpf_settings["-k"]))],
+                    names=["idx0", "idx1", *list(range(K))],
                     usecols=lambda name: "idx" not in str(name),
                     sep="\t",
                 ).values,
@@ -201,7 +202,7 @@ def run_dpf(
     glob_theta = pd.read_csv(
         glob_theta_file,
         header=None,
-        names=["idx0", "idx1", *list(range(dpf_settings["-k"]))],
+        names=["idx0", "idx1", *list(range(K))],
         usecols=lambda name: "idx" not in str(name),
         sep="\t",
     ).values
