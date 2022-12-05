@@ -355,7 +355,12 @@ class CausalInfluenceModel:
         # set to zero
         if np.sum(Z < 0) > 0:
             tqdm.write(f"found {np.sum(Z < 0)} Z < 0 -- setting to 0")
-            Z[Z < 0] = 0
+            Z[Z < 0] = 0.0
+
+        # check for W also just in case
+        if np.sum(W < 0) > 0:
+            tqdm.write(f"found {np.sum(W < 0)} W < 0 -- setting to 0")
+            W[W < 0] = 0.0
 
         if not use_old_subs:
             try:
@@ -392,6 +397,12 @@ class CausalInfluenceModel:
                 )
 
         rate = influence_rate + pref_rate
+        # check rate is positive
+        if np.sum(rate < 1e-10) > 0:
+            tqdm.write(
+                f"found {np.sum(rate < 1e-10)} rate params < 1e-10 -- setting to 1e-10"
+            )
+            rate[rate < 1e-10] = 1e-10
         for Y_t in Y:
             # make sure no neg / zero vals in Y_t
             Y_t[Y_t < 0] = 0
