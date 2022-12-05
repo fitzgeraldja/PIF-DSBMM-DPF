@@ -62,7 +62,6 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-import tqdm
 from scipy.sparse import csr_array
 from scipy.special import expit
 from scipy.stats import bernoulli, gamma, poisson
@@ -277,12 +276,10 @@ class CitationSimulator:
         :rtype: np.ndarray
         """
         tqdm.write(f"Getting one-hot encoding for {covar}...")
-        categories = np.unique(self.au_profs[covar])
+        tot_sub = self.au_profs.loc[self.au_profs.auid_idx.isin(self.aus), :]
+        categories = np.unique(tot_sub[covar])
         num_cats = len(categories)
         one_hot_encoding = np.zeros((self.aus.shape[0], self.T, num_cats))
-        tot_sub = self.au_profs.loc[self.au_profs.auid_idx.isin(self.aus), :]
-        print(tot_sub.shape)
-        print(self.au_profs.shape)
         tot_sub1hot = pd.get_dummies(tot_sub[covar])
         self.covar1_codedict = {i: c for i, c in enumerate(tot_sub1hot.columns)}
         for t, year in enumerate(self.df_ts):
@@ -293,7 +290,7 @@ class CitationSimulator:
                 ].values
             except ValueError:
                 print(t)
-                print(len(pres_u))
+                print(pres_u.sum())
                 print((tot_sub.windowed_year == year).sum())
                 raise ValueError("Something went wrong with one-hot encoding.")
             # u_idx = np.arange(self.aus.shape[0])
@@ -399,7 +396,7 @@ class CitationSimulator:
         )
         return embedding, loadings
 
-    def make_simulated_influence(self):
+    def make_simulated_influence(self) -> np.ndarray:
         N = self.A[0].shape[0]
         # by default influence_shp == 0.005, so expected influence
         # (at least in first timestep)
@@ -424,7 +421,7 @@ class CitationSimulator:
                 )
         else:
             influence = np.zeros((N, self.T - 1))
-        return influence
+        return influence  # type: ignore
 
     def process_dataset(self):
         # load real data
@@ -471,7 +468,7 @@ class CitationSimulator:
         )
         tqdm.write(f"Generated {self.covar_2} tpc covariate")
         tqdm.write("Simulating influence...")
-        self.beta = self.make_simulated_influence()
+        self.beta: np.ndarray = self.make_simulated_influence()
         no_cit_aus = np.stack([A_t.sum(axis=0) == 0 for A_t in self.A])
         self.beta[no_cit_aus] = 1.0
 
@@ -583,7 +580,7 @@ class CitationSimulator:
         for tm1, A_t in enumerate(self.A):
             t = tm1 + 1
             # (au1, au2) = np.nonzero(A_t)
-            mask = bernoulli.rvs(self.error_rate, size=len(A_t.data))
+            mask: np.ndarray = bernoulli.rvs(self.error_rate, size=(len(A_t.data),))  # type: ignore
             bias_mean = gamma_mean / self.sensitivity_parameter
             n_biased = mask.sum()
             bias_vals = gamma.rvs(
