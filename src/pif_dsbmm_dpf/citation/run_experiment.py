@@ -394,6 +394,8 @@ def main(argv):
                     "-k": K,  # number of factors to fit
                     "-seed": seed,  # set random seed
                 }
+                # now make sure all strings so can pass to subprocess
+                dpf_settings = {k: str(v) for k, v in dpf_settings.items()}
 
                 # and load up DSBMM data
                 try:
