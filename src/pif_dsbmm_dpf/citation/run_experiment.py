@@ -425,6 +425,7 @@ def main(argv):
 
                 if variant == "z-theta-joint":
                     # 'z-theta-joint' is DSBMM and dPF combo
+                    tqdm.write("Running DSBMM")
                     Z_hat_joint, Z_trans = utils.run_dsbmm(
                         dsbmm_data,
                         dsbmm_datadir,
@@ -434,7 +435,7 @@ def main(argv):
                         deg_corr=deg_corr,
                         directed=directed,
                     )
-
+                    tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
                         dpf_results_dir,
@@ -447,6 +448,7 @@ def main(argv):
 
                 elif variant == "theta-only":
                     # 'theta-only' is just dPF
+                    tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
                         dpf_results_dir,
@@ -457,6 +459,7 @@ def main(argv):
 
                 elif variant == "z-theta-concat":
                     #  'z-theta-concat' is DSBM (no meta) and dPF combo
+                    tqdm.write("Running DSBM (no meta)")
                     Z_hat, Z_trans = utils.run_dsbmm(
                         dsbmm_data,
                         dsbmm_datadir,
@@ -466,7 +469,7 @@ def main(argv):
                         deg_corr=deg_corr,
                         directed=directed,
                     )
-
+                    tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
                         dpf_results_dir,
@@ -478,6 +481,7 @@ def main(argv):
                     )
                 else:
                     # 'z-only' is just DSBM (no meta)
+                    tqdm.write("Running DSBM (no meta)")
                     Z_hat, Z_trans = utils.run_dsbmm(
                         dsbmm_data,
                         dsbmm_datadir,
@@ -487,7 +491,7 @@ def main(argv):
                         deg_corr=deg_corr,
                         directed=directed,
                     )
-
+                    tqdm.write("Running dPF")
                     W_hat, Theta_hat = utils.run_dpf(
                         dpf_repo_dir,
                         dpf_results_dir,
