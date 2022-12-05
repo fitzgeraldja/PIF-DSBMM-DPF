@@ -663,9 +663,17 @@ def run_dsbmm(
                 node_probs, ((0, 0), (0, 0), (0, dim_diff)), mode="constant"
             )
         else:
-            main_qs = np.argsort(np.sum(node_probs, axis=(0, 1)))[-Q:]
-            node_probs = node_probs[..., main_qs]
-            pi = pi[np.ix_(main_qs, main_qs)]
+            group_probs = np.nansum(node_probs, axis=(0, 1))
+            if np.any(group_probs == 0):
+                # empty group idx, which should be removed
+                # but also won't be counted for pi, so
+                # can just drop
+                node_probs = node_probs[:, :, group_probs > 0]
+            if node_probs.shape[-1] > Q:
+                # actually fit extra groups, so need to remove
+                main_qs = np.argsort()[-Q:]
+                node_probs = node_probs[..., main_qs]
+                pi = pi[np.ix_(main_qs, main_qs)]
     return node_probs, pi
 
 

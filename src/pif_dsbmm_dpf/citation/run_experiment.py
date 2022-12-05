@@ -424,7 +424,7 @@ def main(argv):
                             remove_final=True,
                             save_path=dsbmm_datadir / f"{sim_model_str}_dsbmm_data.pkl",
                         )
-
+                dsbmm_res_str = f"{sim_model_str}_{'dc' if deg_corr else 'ndc'}_{'dir' if directed else 'undir'}_{'meta' if variant=='z-theta-joint' else 'nometa'}"
                 if variant == "z-theta-joint":
                     # 'z-theta-joint' is DSBMM and dPF combo
                     tqdm.write("Running DSBMM")
@@ -433,7 +433,7 @@ def main(argv):
                         dsbmm_datadir,
                         Q,
                         ignore_meta=False,
-                        datetime_str=sim_model_str,
+                        datetime_str=dsbmm_res_str,
                         deg_corr=deg_corr,
                         directed=directed,
                     )
@@ -467,7 +467,7 @@ def main(argv):
                         dsbmm_datadir,
                         Q,
                         ignore_meta=True,
-                        datetime_str=sim_model_str,
+                        datetime_str=dsbmm_res_str,
                         deg_corr=deg_corr,
                         directed=directed,
                     )
@@ -489,7 +489,7 @@ def main(argv):
                         dsbmm_datadir,
                         Q,
                         ignore_meta=True,
-                        datetime_str=sim_model_str,
+                        datetime_str=dsbmm_res_str,
                         deg_corr=deg_corr,
                         directed=directed,
                     )
@@ -543,6 +543,9 @@ if __name__ == "__main__":
     # TODO:
     # -- get running
     # -- write shell script to run w other vars
+    # -- as for theirs, let run 10 times for each, with
+    #    different random seeds
+    # -- see if can get sensitivity analysis also going
 
     # -- for real data resort dPF full data: split first year of
     #    final period off as val, rest as test
@@ -553,7 +556,6 @@ if __name__ == "__main__":
     #    allow substitutes to be constructed for final period -- the held-out
     #    dPF data should have the test as held-out, val as final year / some
     #    small amount of this BEFORE that, and DSBMM should not remove any info
-    # -- see if can get sensitivity analysis also going
     # -- consider updating impl of [pif, spf, network_pref_only, topic_only]
     #    models - would be good to compare to methods that treat each timestep
     #    separately, and should genuinely be fairly small modifications needed
