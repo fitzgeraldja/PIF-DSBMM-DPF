@@ -653,8 +653,8 @@ def run_dsbmm(
     # from pred_Z also
     # Z_hat(_joint) = node_probs  # in shape (N,T,Q)
     if len(node_probs.shape) == 4:
-        assert node_probs.shape[0] == 1
-        node_probs = node_probs.squeeze(0)
+        assert len(node_probs) == 1
+        node_probs = node_probs[0]
         pi = pi[0]
     if node_probs.shape[-1] != Q:
         if node_probs.shape[-1] < Q:
@@ -680,6 +680,7 @@ def run_dsbmm(
                 except:
                     print(pi.shape, main_qs.shape, main_qs)
                     print(group_probs)
+                    raise ValueError("Problem w pi shape")
     return node_probs, pi
 
 
