@@ -451,7 +451,7 @@ class CitationSimulator:
             )
         tqdm.write(f"Generated {self.covar_2} au covariate")
 
-        num_regions = self.au_one_hot_covar_1.shape[1]
+        num_regions = self.au_one_hot_covar_1.shape[-1]
         num_cats = self.covar_2_num_cats
         # choose to make random topic embeddings w.r.t. covariate 1
         # (author region by default) stable over time, so each region
