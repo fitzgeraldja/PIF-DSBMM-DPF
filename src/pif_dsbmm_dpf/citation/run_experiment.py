@@ -427,28 +427,26 @@ def main(argv):
                 dsbmm_res_str = f"{sim_model_str}_{'dc' if deg_corr else 'ndc'}_{'dir' if directed else 'undir'}_{'meta' if variant=='z-theta-joint' else 'nometa'}"
                 if variant == "z-theta-joint":
                     # 'z-theta-joint' is DSBMM and dPF combo
-                    try:
-                        with open(
-                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
-                        ) as f:
-                            Z_hat_joint, Z_trans = pickle.load(f)
-                        tqdm.write("Loaded DSBMM results for given config")
-                    except FileNotFoundError:
-                        # only run if not already done
-                        tqdm.write("Running DSBMM")
-                        Z_hat_joint, Z_trans = utils.run_dsbmm(
-                            dsbmm_data,
-                            dsbmm_datadir,
-                            Q,
-                            ignore_meta=False,
-                            datetime_str=dsbmm_res_str,
-                            deg_corr=deg_corr,
-                            directed=directed,
-                        )
-                        with open(
-                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
-                        ) as f:
-                            pickle.dump((Z_hat_joint, Z_trans), f)
+                    # try:
+                    #     with open(
+                    #         dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
+                    #     ) as f:
+                    #         Z_hat_joint, Z_trans = pickle.load(f)
+                    #     tqdm.write("Loaded DSBMM results for given config")
+                    # except FileNotFoundError:
+                    # only run if not already done
+                    tqdm.write("Running DSBMM")
+                    Z_hat_joint, Z_trans = utils.run_dsbmm(
+                        dsbmm_data,
+                        dsbmm_datadir,
+                        Q,
+                        ignore_meta=False,
+                        datetime_str=dsbmm_res_str,
+                        deg_corr=deg_corr,
+                        directed=directed,
+                    )
+                    with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
+                        pickle.dump((Z_hat_joint, Z_trans), f)
                     tqdm.write("Running dPF")
                     # always run dPF as separate program
                     # means that results won't be fixed
