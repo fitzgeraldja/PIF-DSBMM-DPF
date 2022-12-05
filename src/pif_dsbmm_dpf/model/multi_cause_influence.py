@@ -405,8 +405,13 @@ class CausalInfluenceModel:
             rate[rate < 1e-10] = 1e-10
         for Y_t in Y:
             # make sure no neg / zero vals in Y_t
-            Y_t[Y_t < 0] = 0
-            Y_t.eliminate_zeros()
+            if (Y_t.data < 0).any():
+                tqdm.write(f"found {np.sum(Y_t.data < 0)} Y_t < 0 -- setting to 0")
+                Y_t[Y_t < 0] = 0
+            if (Y_t.data == 0).any():
+                tqdm.write(f"found {np.sum(Y_t.data == 0)} Y_t == 0 -- will drop")
+                Y_t[Y_t == 0] = 0
+                Y_t.eliminate_zeros()
         try:
             return np.sum(
                 [
@@ -417,7 +422,11 @@ class CausalInfluenceModel:
         except NotImplementedError:
             for t, (Y_t, rate_t) in enumerate(zip(Y, rate.transpose(2, 0, 1))):
                 try:
-                    poisson.logpmf(Y_t, rate_t).sum()
+                    # problem may be using sparse in general -- try only op
+                    # over non-zero entries
+                    return np.sum(
+                        [poisson.logpmf(Y_t.data, rate_t[Y_t.nonzero()]).sum()]
+                    )
                 except NotImplementedError:
                     tqdm.write(f"poisson.logpmf failed for t={t}")
                     tqdm.write(f"Y_t data: {Y_t.data}")
