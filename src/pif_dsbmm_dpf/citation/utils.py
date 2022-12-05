@@ -575,6 +575,7 @@ def run_dsbmm(
         max_trials=None,
         n_runs=1,
     )
+
     pred_Z = dsbmm_apply.init_pred_Z(N, Tm1, **dsbmm_settings)
     # args.h_l, default=None, max. no. layers in hier
     # args.h_Q, default=8, max. no. groups at hier layer,
@@ -589,6 +590,7 @@ def run_dsbmm(
             max_Q=None,
         )
     )
+
     trial_Q_settings = {k: v for k, v in dsbmm_settings.items() if k != "ret_best_only"}
     trial_Qs = dsbmm_apply.init_trial_Qs(N, **trial_Q_settings)
     if (
@@ -605,6 +607,8 @@ def run_dsbmm(
     hierarchy_layers, RESULTS_DIR = dsbmm_apply.prepare_for_run(
         dsbmm_data, dsbmm_datadir, trial_Qs, h_l=h_l
     )
+    rmv_keys = ["num_groups", "max_trials", "min_Q", "max_Q"]
+    dsbmm_settings = {k: v for k, v in dsbmm_settings.items() if k not in rmv_keys}
     dsbmm_settings.update(
         dict(
             verbose=True,
