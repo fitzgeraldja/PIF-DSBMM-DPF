@@ -366,7 +366,7 @@ def main(argv):
                 dpf_subdir = utils.gen_dpf_data(
                     dpf_datadir,
                     simulation_model.aus,
-                    seed=seed,
+                    sim_id=sim_model_path.stem,
                     datetime_str=datetime_str,
                     sim_tpcs=Y,
                     window_len=window_len,
@@ -374,7 +374,7 @@ def main(argv):
 
                 dpf_results_dir = datadir / "dpf_results"
                 dpf_results_dir.mkdir(exist_ok=True)
-                subprocess.run(["cd", str(dpf_results_dir)])
+                os.chdir(str(dpf_results_dir))
                 dpf_settings = {
                     "-n": N,
                     "-m": M,

@@ -282,12 +282,12 @@ def subset_dsbmm_data(
 def gen_dpf_data(
     dpf_datadir: Path,
     subset_idxs: np.ndarray,
-    seed: Optional[int] = None,
+    sim_id: Optional[str] = None,
     datetime_str: Optional[str] = None,
     sim_tpcs: Optional[sparse.csr_array] = None,
     window_len: int = 3,
 ):
-    subdir_str = f"seed{seed}" if seed is not None else f"init:{datetime_str}"
+    subdir_str = sim_id if sim_id is not None else f"init:{datetime_str}"
     subdir = dpf_datadir / subdir_str
     end_names = ["train.tsv", "validation.tsv", "test.tsv"]
     sub_fnames = list(map(lambda x: subdir / x, end_names))
