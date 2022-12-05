@@ -386,7 +386,12 @@ class CausalInfluenceModel:
                 )
 
         rate = influence_rate + pref_rate
-        return poisson.logpmf(Y, rate).sum()
+        return np.sum(
+            [
+                poisson.logpmf(Y_t, rate_t).sum()
+                for Y_t, rate_t in zip(Y, rate.transpose(2, 0, 1))
+            ]
+        )
 
     def _update_gamma(self, Y, Z):
         norm_obs = [Y_t / self.normaliser for Y_t in Y]
