@@ -136,6 +136,10 @@ def run_dpf(
     )
     # now need to collect results from file
     run_res_dir = dpf_results_dir / get_dpf_res_dir(dpf_settings)
+    try:
+        assert run_res_dir.exists()
+    except AssertionError:
+        raise RuntimeError("dPF run failed")
     # dPF saves item (topic) factors as beta,
     # and user (author) factors as theta
     # -- idea of using theta would be as a

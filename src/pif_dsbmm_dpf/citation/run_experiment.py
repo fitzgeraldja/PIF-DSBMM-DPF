@@ -380,7 +380,7 @@ def main(argv):
                 dpf_settings = {
                     "-n": N,
                     "-m": M,
-                    "-dir": str(dpf_datadir),
+                    "-dir": str(dpf_subdir),
                     "-rfreq": 10,  # check ll every 10 iterations
                     "-vprior": 10,  # prior on variance for transitions
                     "-num_threads": 64,  # number of threads to use
@@ -392,7 +392,7 @@ def main(argv):
                     # 3 checks w/o increase in ll
                     # so unlikely to reach
                     "-k": K,  # number of factors to fit
-                    "-seed": seed,  # set random seed
+                    "-seed": int(seed),  # set random seed
                 }
                 # now make sure all strings so can pass to subprocess
                 dpf_settings = {k: str(v) for k, v in dpf_settings.items()}

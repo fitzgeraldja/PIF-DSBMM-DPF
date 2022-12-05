@@ -86,6 +86,11 @@ def calculate_ppc_dsbmm(
 
     # replicated = pass
     heldout = [obs[idxs] for obs, idxs in zip(obs_a, heldout_idxs)]
+    # e_idxs = [np.stack(idxs,axis=1).astype(int) for idxs in heldout_idxs]
+    i_idxs = [idxs[0] for idxs in heldout_idxs]
+    j_idxs = [idxs[1] for idxs in heldout_idxs]
+    if not deg_corr and not directed:
+        pass
     # logll_heldout = poisson.logpmf(heldout, rates).sum()
     # logll_replicated = poisson.logpmf(replicated, rates).sum()
     # return logll_heldout, logll_replicated
