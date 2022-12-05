@@ -13,6 +13,7 @@ from typing_extensions import TypedDict
 tqdm.pandas()
 
 import dsbmm_bp.apply as dsbmm_apply
+from dsbmm_bp.data_processor import clean_meta
 
 
 def sample_simple_markov(N: int, T: int, Q: int, eta: float, onehot=False):
@@ -272,6 +273,7 @@ def subset_dsbmm_data(
             if mn in chosen_meta
         ]
     data["X"] = [X_s[subset_idxs, ...] for X_s in data["X"]]
+
     if sim_tpcs is not None:
         # NB ordering should already have been done by subsetting, so
         # should be able to just assign directly
@@ -290,6 +292,12 @@ def subset_dsbmm_data(
             data["A"] = data["A"][:-1]
         if data["X"][0].shape[1] == T:
             data["X"] = [X_s[:, :-1, :] for X_s in data["X"]]
+
+    # now clean subset of meta according to specified dists
+    tmp_meta_dims = [X_s.shape[-1] for X_s in data["X"]]
+    data["X"] = clean_meta(
+        data["meta_names"], data["meta_types"], tmp_meta_dims, data["X"], max_cats=30
+    )
     if save_path is not None:
         tqdm.write(f"Saving subsetted DSBMM data to {save_path}")
         with open(save_path, "wb") as f:
