@@ -440,8 +440,9 @@ def main(argv):
                     except FileNotFoundError:
                         # only run if not already done
                         tqdm.write("Running DSBMM")
+                        h_l = 2
                         tqdm.write(
-                            f"using settings Q={Q}, N={dsbmm_data['A'][0].shape[0]}, T-1={len(dsbmm_data['A'])}"
+                            f"using settings h_Q={np.round(np.exp(np.log(Q) / h_l)).astype(int)}, N={dsbmm_data['A'][0].shape[0]}, T-1={len(dsbmm_data['A'])}"
                         )
                         Z_hat_joint, Z_trans = utils.run_dsbmm(
                             dsbmm_data,
