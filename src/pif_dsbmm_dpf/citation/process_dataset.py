@@ -274,13 +274,13 @@ class CitationSimulator:
         categories = np.unique(self.au_profs[covar])
         num_cats = len(categories)
         one_hot_encoding = np.zeros((self.aus.shape[0], self.T, num_cats))
-        tot_sub = self.au_profs.loc[self.au_profs.auid_idx.isin(self.aus)]
+        tot_sub = self.au_profs.loc[self.au_profs.auid_idx.isin(self.aus), :]
         tot_sub1hot = pd.get_dummies(tot_sub[covar])
         self.covar1_codedict = {i: c for i, c in enumerate(tot_sub1hot.columns)}
         for t, year in enumerate(self.df_ts):
             pres_u = np.isin(self.aus, self.uids[year].values)
-            one_hot_encoding[pres_u, t, :] = tot_sub1hot[
-                tot_sub.windowed_year == year
+            one_hot_encoding[pres_u, t, :] = tot_sub1hot.loc[
+                tot_sub.windowed_year == year, :
             ].values
             # u_idx = np.arange(self.aus.shape[0])
             # # not guaranteed that every author that gets cited has a profile
