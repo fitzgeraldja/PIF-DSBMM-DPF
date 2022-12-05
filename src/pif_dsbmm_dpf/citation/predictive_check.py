@@ -9,7 +9,8 @@ import dsbmm_bp.data_processor as dsbmm_data_proc
 import numpy as np
 import utils
 from process_dataset import CitationSimulator
-from scipy import sparse
+
+# from scipy import sparse
 from scipy.stats import bernoulli, poisson
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
