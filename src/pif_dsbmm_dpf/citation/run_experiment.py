@@ -425,6 +425,7 @@ def main(argv):
                             save_path=dsbmm_datadir / f"{sim_model_str}_dsbmm_data.pkl",
                         )
                 dsbmm_res_str = f"{sim_model_str}_{'dc' if deg_corr else 'ndc'}_{'dir' if directed else 'undir'}_{'meta' if variant=='z-theta-joint' else 'nometa'}"
+                dpf_res_name = f"{sim_model_str}_{variant}.pkl"
                 if variant == "z-theta-joint":
                     # 'z-theta-joint' is DSBMM and dPF combo
                     try:
@@ -449,28 +450,44 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
                         ) as f:
                             pickle.dump((Z_hat_joint, Z_trans), f)
-                    tqdm.write("Running dPF")
-                    # always run dPF as separate program
-                    # means that results won't be fixed
+                    # consider always running dPF as separate
+                    # program means that results won't be fixed
                     # by seed
-                    W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir,
-                        dpf_results_dir,
-                        dpf_settings,
-                        idx_map_dir=dpf_subdir,
-                        true_N=N,
-                        true_M=M,
-                    )
+                    try:
+                        with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                            W_hat, Theta_hat = pickle.load(f)
+                        tqdm.write("Loaded dPF results for given config")
+                    except FileNotFoundError:
+                        tqdm.write("Running dPF")
+                        W_hat, Theta_hat = utils.run_dpf(
+                            dpf_repo_dir,
+                            dpf_results_dir,
+                            dpf_settings,
+                            idx_map_dir=dpf_subdir,
+                            true_N=N,
+                            true_M=M,
+                        )
+                        with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                            pickle.dump((W_hat, Theta_hat), f)
 
                 elif variant == "theta-only":
                     # 'theta-only' is just dPF
-                    tqdm.write("Running dPF")
-                    W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir,
-                        dpf_results_dir,
-                        dpf_settings,
-                        idx_map_dir=dpf_subdir,
-                    )
+                    try:
+                        with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                            W_hat, Theta_hat = pickle.load(f)
+                        tqdm.write("Loaded dPF results for given config")
+                    except FileNotFoundError:
+                        tqdm.write("Running dPF")
+                        W_hat, Theta_hat = utils.run_dpf(
+                            dpf_repo_dir,
+                            dpf_results_dir,
+                            dpf_settings,
+                            idx_map_dir=dpf_subdir,
+                            true_N=N,
+                            true_M=M,
+                        )
+                        with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                            pickle.dump((W_hat, Theta_hat), f)
 
                 elif variant == "z-theta-concat":
                     #  'z-theta-concat' is DSBM (no meta) and dPF combo
@@ -495,15 +512,22 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
                         ) as f:
                             pickle.dump((Z_hat_joint, Z_trans), f)
-                    tqdm.write("Running dPF")
-                    W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir,
-                        dpf_results_dir,
-                        dpf_settings,
-                        idx_map_dir=dpf_subdir,
-                        true_N=N,
-                        true_M=M,
-                    )
+                    try:
+                        with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                            W_hat, Theta_hat = pickle.load(f)
+                        tqdm.write("Loaded dPF results for given config")
+                    except FileNotFoundError:
+                        tqdm.write("Running dPF")
+                        W_hat, Theta_hat = utils.run_dpf(
+                            dpf_repo_dir,
+                            dpf_results_dir,
+                            dpf_settings,
+                            idx_map_dir=dpf_subdir,
+                            true_N=N,
+                            true_M=M,
+                        )
+                        with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                            pickle.dump((W_hat, Theta_hat), f)
                 else:
                     # 'z-only' is just DSBM (no meta)
                     try:
@@ -527,15 +551,22 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
                         ) as f:
                             pickle.dump((Z_hat_joint, Z_trans), f)
-                    tqdm.write("Running dPF")
-                    W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir,
-                        dpf_results_dir,
-                        dpf_settings,
-                        idx_map_dir=dpf_subdir,
-                        true_N=N,
-                        true_M=M,
-                    )
+                    try:
+                        with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                            W_hat, Theta_hat = pickle.load(f)
+                        tqdm.write("Loaded dPF results for given config")
+                    except FileNotFoundError:
+                        tqdm.write("Running dPF")
+                        W_hat, Theta_hat = utils.run_dpf(
+                            dpf_repo_dir,
+                            dpf_results_dir,
+                            dpf_settings,
+                            idx_map_dir=dpf_subdir,
+                            true_N=N,
+                            true_M=M,
+                        )
+                        with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                            pickle.dump((W_hat, Theta_hat), f)
 
                 Rho_hat = np.zeros((N, T, Q + K))
                 if variant == "z-only":

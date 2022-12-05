@@ -130,7 +130,7 @@ def run_dpf(
 ):
     subprocess.run(
         [
-            str(dpf_repo_dir / "src/dynnormprec"),
+            str((dpf_repo_dir / "src") / "dynnormprec"),
             *chain.from_iterable(dpf_settings.items()),
         ]
     )
