@@ -196,6 +196,12 @@ class CitationSimulator:
         """
         with open(os.path.join(self.datapath, "au_profs.pkl"), "rb") as f:
             self.au_profs = pickle.load(f)
+        # enforce that (auid_idx,windowed_year) should be unique
+        print(len(self.au_profs))
+        self.au_profs.drop_duplicates(
+            subset=["auid_idx", "windowed_year"], inplace=True
+        )
+        print(len(self.au_profs))
         self.au_profs["region_categorical"] = pd.Categorical(self.au_profs.region).codes
         code = {
             r: i for (i, r) in enumerate(np.unique(self.au_profs["region_categorical"]))
