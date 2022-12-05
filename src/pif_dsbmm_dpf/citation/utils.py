@@ -328,7 +328,7 @@ def gen_dpf_data(
             )
         tqdm.write("Done.")
     tqdm.write(
-        f"in dPF data, train, val, test contain {len(dpf_train)}, {len(dpf_val)}, {len(dpf_test)} records resp."
+        f"In dPF data, train, val, test contain {len(dpf_train)}, {len(dpf_val)}, {len(dpf_test)} records resp."
     )
     tot_records = len(dpf_train) + len(dpf_val) + len(dpf_test)
     tqdm.write(
