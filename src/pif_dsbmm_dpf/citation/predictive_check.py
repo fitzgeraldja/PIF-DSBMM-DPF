@@ -344,7 +344,7 @@ def main():
                     simulation_model.aus,
                     T,
                     sim_tpcs=Y,
-                    meta_choices="tpc_",
+                    meta_choices=["tpc_"],
                     remove_final=True,
                     save_path=dsbmm_datadir / f"{sim_model_path.stem}_dsbmm_data.pkl",
                 )
