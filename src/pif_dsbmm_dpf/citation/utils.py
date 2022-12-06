@@ -749,3 +749,15 @@ def mse(true, pred):
     :type pred: np.ndarray
     """
     return np.power(true - pred, 2).mean(axis=tuple(list(range(len(true.shape) - 1))))
+
+
+def safe_sparse_toarray(sparse_mat):
+    """Convert potentially sparse array to dense
+
+    :param sparse_mat: possible sparse array
+    :type sparse_mat: Union[np.ndarray,sparse.csr_array]
+    """
+    try:
+        return sparse_mat.toarray()
+    except AttributeError:
+        return sparse_mat

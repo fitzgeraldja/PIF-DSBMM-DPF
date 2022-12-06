@@ -3,6 +3,7 @@ import sys
 from functools import reduce
 
 import numpy as np
+import utils
 from scipy import sparse, special
 from scipy.stats import gamma, poisson, truncnorm
 from sklearn.metrics import mean_squared_error as mse
@@ -239,7 +240,7 @@ class CausalInfluenceModel:
             # items, so fills memory even if computations are relatively fast, as this isn't possible given dense params
             influence_component = np.stack(
                 [
-                    ((self.beta_term * A_t) @ Ytm1).toarray()
+                    utils.safe_sparse_toarray((self.beta_term * A_t) @ Ytm1)
                     for A_t, Ytm1 in zip(A, Y_past)
                 ],
                 axis=-1,
@@ -247,7 +248,7 @@ class CausalInfluenceModel:
         else:
             influence_component = np.stack(
                 [
-                    ((beta_t * A_t) @ Ytm1).toarray()
+                    utils.safe_sparse_toarray((beta_t * A_t) @ Ytm1)
                     for beta_t, A_t, Ytm1 in zip(self.beta_term.T, A, Y_past)
                 ],
                 axis=-1,
@@ -341,7 +342,7 @@ class CausalInfluenceModel:
         if self.time_homog:
             influence_rate = np.stack(
                 [
-                    ((self.E_beta[np.newaxis, :] * A_t) @ Ytm1).toarray()
+                    utils.safe_sparse_toarray((self.E_beta[np.newaxis, :] * A_t) @ Ytm1)
                     for A_t, Ytm1 in zip(A, Y_past)
                 ],
                 axis=-1,
@@ -349,7 +350,7 @@ class CausalInfluenceModel:
         else:
             influence_rate = np.stack(
                 [
-                    ((beta_t[np.newaxis, :] * A_t) @ Ytm1).toarray()
+                    utils.safe_sparse_toarray((beta_t[np.newaxis, :] * A_t) @ Ytm1)
                     for beta_t, A_t, Ytm1 in zip(self.E_beta.T, A, Y_past)
                 ],
                 axis=-1,
@@ -435,14 +436,14 @@ class CausalInfluenceModel:
             expected_aux = self.gamma_term * reduce(
                 lambda x, y: x + y,
                 [
-                    (nrm_ob_t.T @ z_t).toarray()
+                    utils.safe_sparse_toarray(nrm_ob_t.T @ z_t)
                     for nrm_ob_t, z_t in zip(norm_obs, Z.transpose(1, 0, 2))
                 ],
             )
         else:
             expected_aux = self.gamma_term * np.stack(
                 [
-                    (nrm_ob_t.T @ z_t).toarray()
+                    utils.safe_sparse_toarray(nrm_ob_t.T @ z_t)
                     for nrm_ob_t, z_t in zip(
                         norm_obs,
                         Z.transpose(1, 0, 2),
@@ -464,14 +465,14 @@ class CausalInfluenceModel:
             expected_aux = self.alpha_term * reduce(
                 lambda x, y: x + y,
                 [
-                    (nrm_ob_t @ w_t).toarray()
+                    utils.safe_sparse_toarray(nrm_ob_t @ w_t)
                     for nrm_ob_t, w_t in zip(norm_obs, W.transpose(1, 0, 2))
                 ],
             )
         else:
             expected_aux = self.alpha_term * np.stack(
                 [
-                    (nrm_ob_t @ w_t).toarray()
+                    utils.safe_sparse_toarray(nrm_ob_t @ w_t)
                     for nrm_ob_t, w_t in zip(
                         norm_obs,
                         W.transpose(1, 0, 2),
@@ -493,7 +494,7 @@ class CausalInfluenceModel:
             expected_aux = self.beta_term * reduce(
                 lambda x, y: x + y,
                 [
-                    (ytm1 @ (nrm_ob_t.T @ A_t.T)).toarray()
+                    utils.safe_sparse_toarray(ytm1 @ (nrm_ob_t.T @ A_t.T))
                     for nrm_ob_t, A_t, ytm1 in zip(norm_obs, A, Y_past)
                 ],
             )
@@ -501,7 +502,7 @@ class CausalInfluenceModel:
         else:
             expected_aux = self.beta_term * np.stack(
                 [
-                    (ytm1 @ (nrm_ob_t.T @ A_t.T)).toarray()
+                    utils.safe_sparse_toarray(ytm1 @ (nrm_ob_t.T @ A_t.T))
                     for nrm_ob_t, A_t, ytm1 in zip(norm_obs, A, Y_past)
                 ],
                 axis=1,
