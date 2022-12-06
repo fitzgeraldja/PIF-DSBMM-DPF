@@ -736,7 +736,6 @@ if __name__ == "__main__":
         0.005,
         "Shape parameter that controls the average influence in network, default 0.005",
     )
-
     flags.DEFINE_string(
         "region_col_id",
         "main_adm1_1hot",

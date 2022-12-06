@@ -9,6 +9,6 @@ python -m citation.run_experiment \
 --num_exog_components=${NUM_EXOG_COMPONENTS} \
 --confounding_type=${CONF_TYPES} \
 --configs=${CONFIGS} \
---seed=${SEED}
+--seed=${SEED} \
 --region_col_id=${REGION_COL_ID} \
 --${USE_OLD_SUBS}

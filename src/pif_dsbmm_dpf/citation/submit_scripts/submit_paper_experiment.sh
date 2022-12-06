@@ -6,11 +6,6 @@ export NUM_EXOG_COMPONENTS=5
 export CONF_TYPES=homophily,exog,both
 export CONFIGS=50,10:50,50:50,100
 
-
-# ADD
-# "region_col_id" in ["main_adm1_1hot", "main_ctry_1hot"]
-# and
-# --["use_old_subs","nouse_old_subs"]
 for MODEL_ITER in dsbmm_dpf;
 do
 	for VAR_ITER in z-theta-joint z-only z-theta-joint-ndc;
@@ -43,8 +38,8 @@ do
 		export MODEL=${MODEL_ITER}
 		export VARIANT=main
 		export OUT=${BASE_DIR}/results/${SIM_ITER}/
-		export REGION_COL_ID=main_adm1_1hot
-		export USE_OLD_SUBS=use_old_subs
+		export REGION_COL_ID="main_adm1_1hot"
+		export USE_OLD_SUBS="use_old_subs"
 		./citation/submit_scripts/run_paper_experiment.sh
 	done
 done
