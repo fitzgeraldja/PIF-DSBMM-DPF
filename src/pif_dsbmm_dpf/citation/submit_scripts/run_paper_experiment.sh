@@ -1,8 +1,8 @@
 #!/bin/bash
 
 python -m citation.run_experiment \
---data_dir=${DIR} \
---out_dir=${OUT} \
+--data_dir=${IN_DIR} \
+--out_dir=${OUT_DIR} \
 --model=${MODEL} \
 --variant=${VARIANT} \
 --num_components=${NUM_COMPONENTS} \
