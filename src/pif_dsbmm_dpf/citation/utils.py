@@ -1,3 +1,4 @@
+import copy
 import pickle
 import subprocess
 from itertools import chain
@@ -243,7 +244,7 @@ class Dsbmm_datatype(TypedDict):
 
 
 def subset_dsbmm_data(
-    data: Dsbmm_datatype,
+    in_data: Dsbmm_datatype,
     subset_idxs: np.ndarray,
     T: int,
     sim_tpcs: Optional[list[sparse.csr_array]] = None,
@@ -254,6 +255,7 @@ def subset_dsbmm_data(
     # N = data["A"][0].shape[0]
     # bin_subset = np.arange(N)
     # bin_subset = np.isin(bin_subset, subset_aus)
+    data = copy.deepcopy(in_data)
     data["A"] = [A_t[np.ix_(subset_idxs, subset_idxs)] for A_t in data["A"]]
     if meta_choices is not None:
         chosen_meta = list(

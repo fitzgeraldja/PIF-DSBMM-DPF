@@ -335,12 +335,15 @@ def main():
                 #         dsbmm_data = pickle.load(f)
                 # except FileNotFoundError:
                 tqdm.write("DSBMM data for given config not found, generating...")
-                dsbmm_data = dsbmm_data_proc.load_data(
-                    dsbmm_datadir,
-                    edge_weight_choice="count",
-                )
+                try:
+                    all_dsbmm_data
+                except NameError:
+                    all_dsbmm_data = dsbmm_data_proc.load_data(
+                        dsbmm_datadir,
+                        edge_weight_choice="count",
+                    )
                 dsbmm_data = utils.subset_dsbmm_data(
-                    dsbmm_data,
+                    all_dsbmm_data,
                     simulation_model.aus,
                     T,
                     sim_tpcs=Y,
