@@ -553,7 +553,7 @@ class CausalInfluenceModel:
 
         for i in range(self.max_iter):
             if self.verbose:
-                tqdm.write(f"Bound: {bd}")
+                tqdm.write(f"ELBO: {bd:.4g}")
                 sys.stdout.flush()
 
             old_bd = bd
