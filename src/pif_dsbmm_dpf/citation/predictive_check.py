@@ -220,8 +220,6 @@ def mask_topics(samp_size, n_cats):
 
 
 def main():
-    # TODO:
-    # -- update to dsbmm and dpf
     num_exps = 20
     Qs = [4, 8, 16, 32]
     Ks = [3, 5, 8, 10]

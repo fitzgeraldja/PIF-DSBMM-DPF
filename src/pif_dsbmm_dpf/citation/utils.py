@@ -692,8 +692,6 @@ def run_dsbmm(
     if ret_block_probs:
         block_probs = res.pop(0)
 
-    # TODO: consider trying with one-hot factors
-    # from pred_Z also
     # Z_hat(_joint) = node_probs  # in shape (N,T,Q)
     if type(node_probs) == list:
         # only support single run (or ret_best_only) for now

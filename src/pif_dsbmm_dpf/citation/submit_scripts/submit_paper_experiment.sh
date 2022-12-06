@@ -1,8 +1,8 @@
 #!/bin/bash
 BASE_DIR=/scratch/fitzgeraldj/data/caus_inf_data/
 export IN_DIR=${BASE_DIR}
-export NUM_COMPONENTS=5
-export NUM_EXOG_COMPONENTS=5
+export NUM_COMPONENTS=16
+export NUM_EXOG_COMPONENTS=8
 export CONF_TYPES=homophily,exog,both
 export CONFIGS=50,10:50,50:50,100
 MAIN_REPO_DIR=~/Documents/main_project/post_confirmation/code/PIF-DSBMM-DPF/

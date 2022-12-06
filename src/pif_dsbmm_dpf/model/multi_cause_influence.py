@@ -12,24 +12,6 @@ from pif_dsbmm_dpf.citation import utils
 
 
 class CausalInfluenceModel:
-    # TODO:
-    # -- Allow inference where the A used for inference at each timestep is either
-    # (i) the A at the previous timestep (logic being that publications take time, so inspiration comes at an earlier stage), and
-    # (ii) the A at the current timestep (logic being that citations are a good proxy for influence already). For the latter,
-    # presumably we would need to allow observation of the network to permit held-out influence estimation, but this would still be
-    # legitimate to some degree if we didn't allow observation of the topics themselves.
-    # -- [DONE] Allow both
-    # (i) time-homogeneous params (but independent observations at each timestep), which thus use all data for each param
-    # -- assume that can just use eqns below but sum over t as well as whatever else, and
-    # (ii) time-varying params, that only use the present timestep -- means held-out data won't have available params, but can
-    # just use the latest available instead
-    # -- Check that DSBMM is approximately rendering citations and topics independent given the groups, as this is necessary
-    # for the causal model to be valid.
-    # -- Change all below from sparse to ndarray as v minimal savings anyway
-    # - ahh incorrect -- any dots w the Ys or A will be sparse and also
-    # more importantly will prevent calculating all the other
-    # multipliers, so save a lot of time if these are very sparse
-    # -- Also means can't use npnewaxis for Y_t or A_t, nor einsum
     def __init__(
         self,
         n_components=100,
@@ -589,13 +571,13 @@ def get_set_overlap(Beta_p, Beta, k=20):
 
 
 if __name__ == "__main__":
+    print("NB this is for old PIF, do not run if you are not sure")
     N = 1000
     Q = 10
     K = Q
     M = 1000
     T = 5
 
-    # TODO: finish fully synthetic data gen (?)
     Z = gamma.rvs(0.5, scale=0.1, size=(N, Q))
     Z_trans = np.random.rand(Q, Q)
     Gamma = gamma.rvs(0.5, scale=0.1, size=(M, Q))

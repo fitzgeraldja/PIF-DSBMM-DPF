@@ -619,12 +619,22 @@ def main(argv):
 
 if __name__ == "__main__":
     # TODO:
-    # -- get running
-    # -- write shell script to run w other vars
-    # -- as for theirs, let run 10 times for each, with
-    #    different random seeds
+    # -- do write up
+    # -- see if any results available at this point, otherwise
+    #    just have template section (NB prelims look quite
+    #    good, so should be able to get something out)
+    # -- should be able to lightly edit their notebooks
+    #    to get analogous results
     # -- see if can get sensitivity analysis also going
-    # -- sort PPCs -- very long!
+    # -- start on full data
+    # -- if cluster completes quickly, try with time-homog params
+    # -- We allow both
+    # (i) time-homogeneous params (but independent observations at each timestep), which thus use all data for each param
+    # -- assume that can just use eqns below but sum over t as well as whatever else, and
+    # (ii) time-varying params, that only use the present timestep -- means held-out data won't have available params, but can
+    # just use the latest available instead
+    # -- [less important, have ppcs] Check that DSBMM is approximately rendering citations and topics
+    # independent given the groups, as this is necessary for the causal model to be valid.
 
     # -- for real data resort dPF full data: split first year of
     #    final period off as val, rest as test
@@ -642,6 +652,18 @@ if __name__ == "__main__":
     #    for which we don't have any confounder substitutes. Somewhat dubious using substitutes fit on the
     #    full data anyway, but otherwise would have to fit separate confounders on every subset here...
     #    Feel that observing performance on fully held-out data is reasonable compromise.
+
+    # -- As for DSBMM, because the Ys and As are sparse, could
+    #    potentially prevent performing many calcs with a fully sparse
+    #    implementation
+    # -- Would mean can't use eg np.newaxis or einsum
+    # -- Allow inference where the A used for inference at each timestep is either
+    #    (i) the A at the previous timestep (logic being that publications take time, so inspiration comes at an earlier stage), and
+    #    (ii) the A at the current timestep (logic being that citations are a good proxy for influence already). For the latter,
+    #    presumably we would need to allow observation of the network to permit held-out influence estimation, but this would still be
+    #    legitimate to some degree if we didn't allow observation of the topics themselves.
+    # -- Consider trying with one-hot factors
+    #    from pred_Z also
     FLAGS = flags.FLAGS
     flags.DEFINE_string(
         "model",
