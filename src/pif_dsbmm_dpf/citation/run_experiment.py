@@ -25,15 +25,11 @@ import os
 import pickle
 import sys
 import time
-from itertools import product
 from pathlib import Path
 
 import dsbmm_bp.data_processor as dsbmm_data_proc
 import numpy as np
 from absl import app, flags
-
-# from sklearn.metrics import mean_squared_error as mse
-from sklearn.decomposition import NMF
 from tqdm import tqdm
 
 # local modules
