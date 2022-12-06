@@ -1,11 +1,11 @@
 #!/bin/bash
 BASE_DIR=/scratch/fitzgeraldj/data/caus_inf_data/
-# export DIR=../dat/pokec/regional_subset/
+export IN_DIR=${BASE_DIR}
 export NUM_COMPONENTS=5
 export NUM_EXOG_COMPONENTS=5
 export CONF_TYPES=homophily,exog,both
 export CONFIGS=50,10:50,50:50,100
-export MAIN_REPO_DIR=~/Documents/main_project/post_confirmation/code/PIF-DSBMM-DPF/
+MAIN_REPO_DIR=~/Documents/main_project/post_confirmation/code/PIF-DSBMM-DPF/
 export MAIN_CODE_DIR=${MAIN_REPO_DIR}/src/pif_dsbmm_dpf/
 
 for MODEL_ITER in dsbmm_dpf;
@@ -21,7 +21,7 @@ do
 					export SEED=${SIM_ITER}
 					export MODEL=${MODEL_ITER}
 					export VARIANT=${VAR_ITER}
-					export OUT=${BASE_DIR}/results/${SIM_ITER}/
+					export OUT_DIR=${BASE_DIR}/results/${SIM_ITER}/
 					export REGION_COL_ID=${REGION_COL_ID_ITER}
 					export USE_OLD_SUBS=${USE_OLD_SUBS_ITER}
 					${MAIN_CODE_DIR}/citation/submit_scripts/run_paper_experiment.sh
