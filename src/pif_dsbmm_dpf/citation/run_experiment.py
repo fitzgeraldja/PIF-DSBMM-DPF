@@ -601,9 +601,7 @@ def main(argv):
 
             tqdm.write(f"Mean inferred infl: {Beta_p.mean():.3g}")
 
-            tqdm.write(
-                f"Overlaps: {np.round(scores,3)}, \nMSE: {loss:np.round(loss,3)}"
-            )
+            tqdm.write(f"Overlaps: {np.round(scores,3)}, \nMSE: {np.round(loss,3)}")
             tqdm.write(f"{'*' * 60}")
             sys.stdout.flush()
             outfile = write / ("conf=" + str((noise, confounding)) + ";conf_type=" + ct)
