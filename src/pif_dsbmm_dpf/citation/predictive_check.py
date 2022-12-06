@@ -239,18 +239,26 @@ def main():
     for exp_idx in range(num_exps):
         print("Working on experiment", exp_idx)
         sim_model_path = datadir / f"sim_model_{exp_idx}.pkl"
-        simulation_model = CitationSimulator(
-            datapath=datadir,
-            subnetwork_size=3000,
-            sub_testsize=300,
-            num_topics=1000,
-            influence_shp=0.005,
-            covar_2="random",
-            covar_2_num_cats=5,
-            seed=exp_idx,
-            save_path=sim_model_path,
-        )
-        simulation_model.process_dataset()
+        try:
+            with open(sim_model_path, "rb") as f:
+                simulation_model: CitationSimulator = pickle.load(f)
+            tqdm.write(f"Loading prev sim of model w same seed and configs...")
+        except FileNotFoundError:
+            tqdm.write(
+                f"Previous sim w given seed and configs not found, creating new sim..."
+            )
+            simulation_model = CitationSimulator(
+                datapath=datadir,
+                subnetwork_size=3000,
+                sub_testsize=300,
+                num_topics=1000,
+                influence_shp=0.005,
+                covar_2="random",
+                covar_2_num_cats=5,
+                seed=exp_idx,
+                save_path=sim_model_path,
+            )
+            simulation_model.process_dataset()
 
         A = simulation_model.A
         print(f"Adj. size and mean: {A[0].shape}, {[f'{A_t.mean():.3g}' for A_t in A]}")

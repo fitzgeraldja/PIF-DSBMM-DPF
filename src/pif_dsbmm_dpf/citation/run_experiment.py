@@ -129,9 +129,9 @@ def main(argv):
 
     if seed is not None:
         try:
-            tqdm.write(f"Loading prev sim of model w same seed and configs...")
             with open(sim_model_path, "rb") as f:
                 simulation_model: CitationSimulator = pickle.load(f)
+            tqdm.write(f"Loading prev sim of model w same seed and configs...")
         except FileNotFoundError:
             tqdm.write(
                 f"Previous sim w given seed and configs not found, creating new sim..."
