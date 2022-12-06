@@ -58,6 +58,11 @@ def post_process_influence(X, Beta):
 
 def get_set_overlap(Beta_p, Beta, k=50):
     scores = np.zeros(Beta.shape[1])
+    tmp_bp = Beta_p.copy()
+    # set missing values to 0, rather than 1
+    tmp_bp[tmp_bp == 1.0] = 0.0
+    tmp_b = Beta.copy()
+    tmp_b[tmp_b == 1.0] = 0.0
     for t, (beta_pt, beta_t) in enumerate(zip(Beta_p.T, Beta.T)):
         top = np.argsort(beta_t)[-k:]
         top_p = np.argsort(beta_pt)[-k:]
@@ -596,10 +601,15 @@ def main(argv):
                 )
 
             Beta_p = m.E_beta
+            # now that calculation is done, when ranking should not count
+            # authors with no citations / no papers -- for both beta,
+            # these would give beta = 1.0, but if many of them then will
+            # artificially inflate the score -- scores below handle this
             scores = get_set_overlap(Beta_p, Beta)
-            loss = utils.mse(Beta, Beta_p)
+            loss = utils.mse(Beta, Beta_p, for_beta=True)
 
-            tqdm.write(f"Mean inferred infl: {Beta_p.mean():.3g}")
+            # now that beta and
+            tqdm.write(f"Mean inferred infl: {Beta_p[Beta_p!=1].mean():.3g}")
 
             tqdm.write(f"Overlaps: {np.round(scores,3)}, \nMSE: {np.round(loss,3)}")
             tqdm.write(f"{'*' * 60}")

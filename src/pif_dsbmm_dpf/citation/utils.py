@@ -739,16 +739,38 @@ def run_dsbmm(
     return out_res
 
 
-def mse(true, pred):
+def mse(true, pred, for_beta=False):
     """Return MSE at each timestep between true and pred,
-    where time is final dim and shapes otherwise match
+    where time is final dim and shapes otherwise match.
+
+    When used for beta, also account for fact that many
+    nodes may be missing, where both should take value 1.0
+    but shouldn't be counted in MSE.
 
     :param true: true values
     :type true: np.ndarray
     :param pred: pred values
     :type pred: np.ndarray
     """
-    return np.power(true - pred, 2).mean(axis=tuple(list(range(len(true.shape) - 1))))
+    if not for_beta:
+        return np.power(true - pred, 2).mean(
+            axis=tuple(list(range(len(true.shape) - 1)))
+        )
+    else:
+        # know shape is (N,T-1)
+        Tm1 = true.shape[-1]
+        n_true_missing = np.sum(true == 1.0, axis=0)
+        n_pred_missing = np.sum(pred == 1.0, axis=0)
+        tqdm.write(f"Seems to be {n_true_missing} missing true values")
+        tqdm.write(f"and {n_pred_missing} possibly missing pred values")
+        mses = np.array(
+            [
+                np.power(
+                    true[:, t] - pred[:, t], 2, where=true[:, t] != pred[:, t]
+                ).mean()
+                for t in range(Tm1)
+            ]
+        )
 
 
 def safe_sparse_toarray(sparse_mat):
