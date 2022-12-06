@@ -55,7 +55,6 @@ Important default choices in semi-synthetic data generation:
 
 import os
 import pickle
-import sys
 from functools import reduce
 from pathlib import Path
 from typing import Optional
@@ -63,10 +62,10 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_array
-from scipy.special import expit
 from scipy.stats import bernoulli, gamma, poisson
 from tqdm import tqdm
-from utils import sample_simple_markov
+
+from pif_dsbmm_dpf.citation.utils import sample_simple_markov
 
 
 class CitationSimulator:

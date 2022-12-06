@@ -3,11 +3,12 @@ import sys
 from functools import reduce
 
 import numpy as np
-import utils
 from scipy import sparse, special
 from scipy.stats import gamma, poisson, truncnorm
 from sklearn.metrics import mean_squared_error as mse
 from tqdm import tqdm
+
+from pif_dsbmm_dpf.citation import utils
 
 
 class CausalInfluenceModel:

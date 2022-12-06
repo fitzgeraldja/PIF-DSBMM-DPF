@@ -7,13 +7,14 @@ from pathlib import Path
 
 import dsbmm_bp.data_processor as dsbmm_data_proc
 import numpy as np
-import utils
-from process_dataset import CitationSimulator
 
 # from scipy import sparse
 from scipy.stats import bernoulli, poisson
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
+
+from pif_dsbmm_dpf.citation import utils
+from pif_dsbmm_dpf.citation.process_dataset import CitationSimulator
 
 
 def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta):
