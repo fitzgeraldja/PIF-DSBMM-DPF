@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python -m pokec.run_experiment \
+python -m citation.run_experiment \
 --data_dir=${DIR} \
 --out_dir=${OUT} \
 --model=${MODEL} \
@@ -10,3 +10,5 @@ python -m pokec.run_experiment \
 --confounding_type=${CONF_TYPES} \
 --configs=${CONFIGS} \
 --seed=${SEED}
+--region_col_id=${REGION_COL_ID} \
+--${USE_OLD_SUBS}

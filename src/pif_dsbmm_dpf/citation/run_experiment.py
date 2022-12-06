@@ -745,7 +745,6 @@ if __name__ == "__main__":
         -- in paper, corresponds to main_adm1_1hot or main_ctry_1hot of author
         """,
     )
-
     flags.DEFINE_string(
         "meta_choice",
         "topics_only",
@@ -763,11 +762,11 @@ if __name__ == "__main__":
     )
     flags.DEFINE_string(
         "edge_weight_choice",
-        "count",
+        "none",
         """
         Specify edge weight name to use, e.g. 'count' or 'weighted'
-        for edge weights in network. Default is 'count', pass
-        'none' to use unweighted (binary) network""",
+        for edge weights in network. Default is 'none' (binary),
+        pass 'count' to use weighted network""",
     )
     flags.DEFINE_bool(
         "use_old_subs",
