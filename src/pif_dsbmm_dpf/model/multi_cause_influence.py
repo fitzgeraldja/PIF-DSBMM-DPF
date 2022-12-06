@@ -494,7 +494,7 @@ class CausalInfluenceModel:
             expected_aux = self.beta_term * reduce(
                 lambda x, y: x + y,
                 [
-                    utils.safe_sparse_toarray(ytm1 @ (nrm_ob_t.T @ A_t.T))
+                    utils.safe_sparse_toarray(((nrm_ob_t @ A_t).T * ytm1).sum(axis=1))
                     for nrm_ob_t, A_t, ytm1 in zip(norm_obs, A, Y_past)
                 ],
             )
@@ -502,7 +502,7 @@ class CausalInfluenceModel:
         else:
             expected_aux = self.beta_term * np.stack(
                 [
-                    utils.safe_sparse_toarray(ytm1 @ (nrm_ob_t.T @ A_t.T))
+                    utils.safe_sparse_toarray(((nrm_ob_t @ A_t).T * ytm1).sum(axis=1))
                     for nrm_ob_t, A_t, ytm1 in zip(norm_obs, A, Y_past)
                 ],
                 axis=1,
