@@ -664,7 +664,7 @@ def run_dsbmm(
             datetime_str=datetime_str,
         )
     )
-    pred_Z, node_probs, pi = dsbmm_apply.run_hier_model(
+    res = dsbmm_apply.run_hier_model(
         "pif_dsbmm",
         dsbmm_data,
         N,
@@ -680,6 +680,16 @@ def run_dsbmm(
         save_to_file=True,
         **dsbmm_settings,
     )
+    res = list(res)
+    if use_1hot_Z:
+        pred_Z = res.pop(0)
+    else:
+        node_probs = res.pop(0)
+    # if ret_trans:
+    pi = res.pop(0)
+    if ret_block_probs:
+        block_probs = res.pop(0)
+
     # TODO: consider trying with one-hot factors
     # from pred_Z also
     # Z_hat(_joint) = node_probs  # in shape (N,T,Q)
@@ -718,7 +728,15 @@ def run_dsbmm(
                     print(pi.shape, main_qs.shape, main_qs)
                     print(group_probs)
                     raise ValueError("Problem w pi shape")
-    return node_probs, pi
+    out_res = []
+    if use_1hot_Z:
+        out_res.append(pred_Z)
+    else:
+        out_res.append(node_probs)
+    out_res.append(pi)
+    if ret_block_probs:
+        out_res.append(block_probs)
+    return out_res
 
 
 def mse(true, pred):
