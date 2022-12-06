@@ -21,10 +21,8 @@ scripts, extras to note are:
  using the meta_choice flag
 """
 
-import argparse
 import os
 import pickle
-import subprocess
 import sys
 import time
 from itertools import product
@@ -32,20 +30,22 @@ from pathlib import Path
 
 import dsbmm_bp.data_processor as dsbmm_data_proc
 import numpy as np
-import utils
 from absl import app, flags
-from process_dataset import CitationSimulator
 
 # from sklearn.metrics import mean_squared_error as mse
 from sklearn.decomposition import NMF
 from tqdm import tqdm
 
 # local modules
-from pif_dsbmm_dpf.model import joint_factor_model as joint
+from pif_dsbmm_dpf.citation import utils
+from pif_dsbmm_dpf.citation.process_dataset import CitationSimulator
+
+# from pif_dsbmm_dpf.model import joint_factor_model as joint
 from pif_dsbmm_dpf.model import multi_cause_influence as causal
-from pif_dsbmm_dpf.model import network_model as nm
-from pif_dsbmm_dpf.model import pmf as pmf
-from pif_dsbmm_dpf.model import spf as spf
+
+# from pif_dsbmm_dpf.model import network_model as nm
+# from pif_dsbmm_dpf.model import pmf as pmf
+# from pif_dsbmm_dpf.model import spf as spf
 
 
 def post_process_influence(X, Beta):

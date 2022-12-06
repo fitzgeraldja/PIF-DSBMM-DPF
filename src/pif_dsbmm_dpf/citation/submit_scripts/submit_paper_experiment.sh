@@ -5,6 +5,7 @@ export NUM_COMPONENTS=5
 export NUM_EXOG_COMPONENTS=5
 export CONF_TYPES=homophily,exog,both
 export CONFIGS=50,10:50,50:50,100
+export MAIN_REPO_DIR=~/Documents/main_project/post_confirmation/code/PIF-DSBMM-DPF
 
 for MODEL_ITER in dsbmm_dpf;
 do
@@ -22,7 +23,7 @@ do
 					export OUT=${BASE_DIR}/results/${SIM_ITER}/
 					export REGION_COL_ID=${REGION_COL_ID_ITER}
 					export USE_OLD_SUBS=${USE_OLD_SUBS_ITER}
-					./citation/submit_scripts/run_paper_experiment.sh
+					${MAIN_REPO_DIR}/citation/submit_scripts/run_paper_experiment.sh
 				done
 			done
 		done
@@ -40,7 +41,7 @@ do
 		export OUT=${BASE_DIR}/results/${SIM_ITER}/
 		export REGION_COL_ID="main_adm1_1hot"
 		export USE_OLD_SUBS="use_old_subs"
-		./citation/submit_scripts/run_paper_experiment.sh
+		${MAIN_REPO_DIR}/citation/submit_scripts/run_paper_experiment.sh
 	done
 done
 
