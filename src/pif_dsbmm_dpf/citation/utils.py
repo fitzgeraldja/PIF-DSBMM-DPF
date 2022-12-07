@@ -67,58 +67,60 @@ def np_to_onehot(arr):
 
 
 def get_dpf_res_dir(dpf_settings):
-    ret_dir = "-".join(
-        [
-            "n" + str(dpf_settings["-n"]),
-            "m" + str(dpf_settings["-m"]),
-            "k" + str(dpf_settings["-k"]),
-            # assume not passing label
-            # if (label != "")
-            #     sa << "-" << label;
-            # assume datfname cdn not met
-            # else if (datfname.length() > 3) {
-            #     string q = datfname.substr(0,2);
-            #     if (isalpha(q[0]))
-            #     sa << "-" << q;
-            # }
-            # assume only performing batch inference
-            # if (batch)
-            #     sa << "-batch";
-            "batch",
-            # assume only fixing to binary data
-            # if (binary_data)
-            #     sa << "-bin";
-            "bin",
-            # assume only using default prior
-            # if (normal_priors)
-            #     sa << "-normpriors";
-            "normpriors",
-            # assume not using dynamic item repr
-            # if (dynamic_item_representations)
-            #     sa << "-dynitemrep";
-            # assume using default dui repr
-            # if (dynamic_user_and_item_representations)
-            #     sa << "-dui";
-            "dui",
-            "nthreads" + str(dpf_settings["-num_threads"]),
-            # assume not fixing item params
-            # if (fixed_item_param)
-            #     sa << "-fip";
-            # assume not using pf_init
-            # if (pf_init)
-            #     sa << "-pf_init";
-            # assume not using static pf_init
-            # if (pf_init_static)
-            #     sa << "-pf_init_static";
-            # assume not using normreps
-            # if (normalized_representations)
-            #     sa << "-normrep";
-            "vprior" + str(dpf_settings["-vprior"]),
-            "seed" + str(dpf_settings["-seed"]),
-            "tpl" + str(dpf_settings["-tpl"]),
-            "correction",
-        ]
-    )
+    tmp_dir_comps = [
+        "n" + str(dpf_settings["-n"]),
+        "m" + str(dpf_settings["-m"]),
+        "k" + str(dpf_settings["-k"]),
+        # assume not passing label
+        # if (label != "")
+        #     sa << "-" << label;
+        # assume datfname cdn not met
+        # else if (datfname.length() > 3) {
+        #     string q = datfname.substr(0,2);
+        #     if (isalpha(q[0]))
+        #     sa << "-" << q;
+        # }
+        # assume only performing batch inference
+        # if (batch)
+        #     sa << "-batch";
+        "batch",
+        # assume only fixing to binary data
+        # if (binary_data)
+        #     sa << "-bin";
+        "bin",
+        # assume only using default prior
+        # if (normal_priors)
+        #     sa << "-normpriors";
+        "normpriors",
+        # assume not using dynamic item repr
+        # if (dynamic_item_representations)
+        #     sa << "-dynitemrep";
+        # assume using default dui repr
+        # if (dynamic_user_and_item_representations)
+        #     sa << "-dui";
+        "dui",
+    ]
+    if "nthreads" in dpf_settings.keys():
+        tmp_dir_comps.append("nthreads" + str(dpf_settings["-num_threads"]))
+        # assume not fixing item params
+        # if (fixed_item_param)
+        #     sa << "-fip";
+        # assume not using pf_init
+        # if (pf_init)
+        #     sa << "-pf_init";
+        # assume not using static pf_init
+        # if (pf_init_static)
+        #     sa << "-pf_init_static";
+        # assume not using normreps
+        # if (normalized_representations)
+        #     sa << "-normrep";
+    if "vprior" in dpf_settings.keys():
+        tmp_dir_comps.append("vprior" + str(dpf_settings["-vprior"]))
+    if "seed" in dpf_settings.keys():
+        tmp_dir_comps.append("seed" + str(dpf_settings["-seed"]))
+    tmp_dir_comps += ["tpl" + str(dpf_settings["-tpl"]), "correction"]
+
+    ret_dir = "-".join(tmp_dir_comps)
     return ret_dir
 
 
