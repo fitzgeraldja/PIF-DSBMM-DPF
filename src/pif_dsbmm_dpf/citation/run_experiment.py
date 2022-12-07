@@ -442,7 +442,7 @@ def main(argv):
                             dsbmm_data,
                             dsbmm_datadir,
                             Q,
-                            ignore_meta=False,
+                            ignore_meta=True,
                             datetime_str=dsbmm_res_str,
                             deg_corr=deg_corr,
                             directed=directed,
