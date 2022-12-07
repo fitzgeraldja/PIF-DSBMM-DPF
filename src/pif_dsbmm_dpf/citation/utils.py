@@ -741,7 +741,7 @@ def run_dsbmm(
     return out_res
 
 
-def mse(true, pred, for_beta=False):
+def mse(true, pred, for_beta=False) -> np.ndarray:
     """Return MSE at each timestep between true and pred,
     where time is final dim and shapes otherwise match.
 
@@ -763,8 +763,9 @@ def mse(true, pred, for_beta=False):
         Tm1 = true.shape[-1]
         n_true_missing = np.sum(true == 1.0, axis=0)
         n_pred_missing = np.sum(pred == 1.0, axis=0)
-        tqdm.write(f"Seems to be {n_true_missing} missing true values")
-        tqdm.write(f"and {n_pred_missing} possibly missing pred values")
+        if not np.all(n_true_missing == n_pred_missing):
+            tqdm.write(f"Seems to be {n_true_missing} missing true values")
+            tqdm.write(f"but {n_pred_missing} possibly missing pred values")
         mses = np.array(
             [
                 np.power(
@@ -773,6 +774,7 @@ def mse(true, pred, for_beta=False):
                 for t in range(Tm1)
             ]
         )
+        return mses
 
 
 def safe_sparse_toarray(sparse_mat):
