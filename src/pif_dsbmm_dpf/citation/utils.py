@@ -100,7 +100,7 @@ def get_dpf_res_dir(dpf_settings):
         #     sa << "-dui";
         "dui",
     ]
-    if "nthreads" in dpf_settings.keys():
+    if "-nthreads" in dpf_settings.keys():
         tmp_dir_comps.append("nthreads" + str(dpf_settings["-num_threads"]))
         # assume not fixing item params
         # if (fixed_item_param)
@@ -114,9 +114,11 @@ def get_dpf_res_dir(dpf_settings):
         # assume not using normreps
         # if (normalized_representations)
         #     sa << "-normrep";
-    if "vprior" in dpf_settings.keys():
+    if "-vprior" in dpf_settings.keys():
         tmp_dir_comps.append("vprior" + str(dpf_settings["-vprior"]))
-    if "seed" in dpf_settings.keys():
+    else:
+        tmp_dir_comps.append("vprior10")
+    if "-seed" in dpf_settings.keys():
         tmp_dir_comps.append("seed" + str(dpf_settings["-seed"]))
     tmp_dir_comps += ["tpl" + str(dpf_settings["-tpl"]), "correction"]
 
