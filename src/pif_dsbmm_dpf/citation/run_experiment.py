@@ -209,21 +209,21 @@ def main(argv):
                     model_mode="influence_only",
                 )
 
-            # elif model == "network_pref_only":
-            #     m = causal.CausalInfluenceModel(
-            #         n_components=Q,
-            #         n_exog_components=K,
-            #         verbose=True,
-            #         model_mode="network_preferences",
-            #     )
+            elif model == "network_pref_only":
+                m = causal.CausalInfluenceModel(
+                    n_components=Q,
+                    n_exog_components=K,
+                    verbose=True,
+                    model_mode="network_preferences",
+                )
 
-            # elif model == "topic_only":
-            #     m = causal.CausalInfluenceModel(
-            #         n_components=Q,
-            #         n_exog_components=K,
-            #         verbose=True,
-            #         model_mode="topic",
-            #     )
+            elif model == "topic_only":
+                m = causal.CausalInfluenceModel(
+                    n_components=Q,
+                    n_exog_components=K,
+                    verbose=True,
+                    model_mode="topic",
+                )
 
             # elif model == "pif":
             #     m = causal.CausalInfluenceModel(
@@ -282,18 +282,7 @@ def main(argv):
                 m.fit(Y[1:], A, Z[:, :-1, :], W[:, :-1, :], Y[:-1])
             elif model == "network_only_oracle":
                 m.fit(Y[1:], A, Z[:, :-1, :], W[:, :-1, :], Y[:-1])
-            # elif model == "network_pref_only":
-            #     network_model = nm.NetworkPoissonMF(n_components=Q)
-            #     network_model.fit(A)
-            #     Z_hat = network_model.Et
-            #     W_hat = np.zeros((M, K))
-            #     m.fit(Y[1:], A, Z_hat, W_hat, Y[:-1])
-            # elif model == "topic_only":
-            #     pmf_model = pmf.PoissonMF(n_components=K)
-            #     pmf_model.fit(Y[:-1])
-            #     W_hat = pmf_model.Eb.T
-            #     Z_hat = np.zeros((N, Q))
-            #     m.fit(Y[1:], A, Z_hat, W_hat, Y[:-1])
+
             elif model == "unadjusted":
                 Z_hat = np.zeros((N, T - 1, Q))
                 W_hat = np.zeros((M, T - 1, K))
@@ -346,8 +335,7 @@ def main(argv):
             #         Rho_hat[:, :, :Q] = Z_hat_joint
 
             # m.fit(Y[1:], A, Rho_hat, W_hat, Y[:-1])
-
-            elif model == "dsbmm_dpf":
+            else:
                 # setup for dpf as actually a c++ program
                 # -- need to change cwd to scratch/ before running dPF
                 # as saves in working directory
@@ -433,8 +421,9 @@ def main(argv):
                         )
                 dsbmm_res_str = f"{sim_model_str}_{'dc' if deg_corr else 'ndc'}_{'dir' if directed else 'undir'}_{'meta' if variant=='z-theta-joint' else 'nometa'}"
                 dpf_res_name = f"{sim_model_str}_{variant}.pkl"
-                if variant == "z-theta-joint":
-                    # 'z-theta-joint' is DSBMM and dPF combo
+
+                if model == "network_pref_only":
+                    # only run DSBM (no meta)
                     try:
                         with open(
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
@@ -462,8 +451,18 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
                         ) as f:
                             pickle.dump((Z_hat_joint, Z_trans), f)
-                    # now run dPF - likewise have set seed so should
-                    # be identical between runs
+                    W_hat = np.zeros((M, T - 1, K))
+                    m.fit(
+                        Y[1:],
+                        A,
+                        Rho_hat,
+                        W_hat,
+                        Y[:-1],
+                        Z_trans=Z_trans,
+                        use_old_subs=use_old_subs,
+                    )
+                elif model == "topic_only":
+                    # only run dPF
                     try:
                         with open(dpf_results_dir / dpf_res_name, "rb") as f:
                             W_hat, Theta_hat = pickle.load(f)
@@ -481,130 +480,192 @@ def main(argv):
                         )
                         with open(dpf_results_dir / dpf_res_name, "wb") as f:
                             pickle.dump((W_hat, Theta_hat), f)
+                    Z_hat = np.zeros((N, T - 1, Q))
+                    Z_trans = np.ones((Q, Q)) / Q
+                    m.fit(
+                        Y[1:],
+                        A,
+                        Rho_hat,
+                        W_hat,
+                        Y[:-1],
+                        Z_trans=Z_trans,
+                        use_old_subs=use_old_subs,
+                    )
 
-                elif variant == "theta-only":
-                    # 'theta-only' is just dPF
-                    try:
-                        with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                            W_hat, Theta_hat = pickle.load(f)
-                        assert W_hat.shape[-1] == K
-                        tqdm.write("Loaded dPF results for given config")
-                    except (FileNotFoundError, AssertionError):
-                        tqdm.write("Running dPF")
-                        W_hat, Theta_hat = utils.run_dpf(
-                            dpf_repo_dir,
-                            dpf_results_dir,
-                            dpf_settings,
-                            idx_map_dir=dpf_subdir,
-                            true_N=N,
-                            true_M=M,
-                        )
-                        with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                            pickle.dump((W_hat, Theta_hat), f)
+                elif model == "dsbmm_dpf":
+                    if variant == "z-theta-joint":
+                        # 'z-theta-joint' is DSBMM and dPF combo
+                        try:
+                            with open(
+                                dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
+                            ) as f:
+                                Z_hat_joint, Z_trans = pickle.load(f)
+                            assert Z_hat_joint.shape[-1] == Q
+                            tqdm.write("Loaded DSBMM results for given config")
+                        except (FileNotFoundError, AssertionError):
+                            # only run if not already done
+                            tqdm.write("Running DSBMM")
+                            h_l = 2
+                            tqdm.write(
+                                f"using settings h_Q={np.round(np.exp(np.log(Q) / h_l)).astype(int)}, N={dsbmm_data['A'][0].shape[0]}, T-1={len(dsbmm_data['A'])}"
+                            )
+                            Z_hat_joint, Z_trans = utils.run_dsbmm(
+                                dsbmm_data,
+                                dsbmm_datadir,
+                                Q,
+                                ignore_meta=False,
+                                datetime_str=dsbmm_res_str,
+                                deg_corr=deg_corr,
+                                directed=directed,
+                            )
+                            with open(
+                                dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
+                            ) as f:
+                                pickle.dump((Z_hat_joint, Z_trans), f)
+                        # now run dPF - likewise have set seed so should
+                        # be identical between runs
+                        try:
+                            with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                                W_hat, Theta_hat = pickle.load(f)
+                            assert W_hat.shape[-1] == K
+                            tqdm.write("Loaded dPF results for given config")
+                        except (FileNotFoundError, AssertionError):
+                            tqdm.write("Running dPF")
+                            W_hat, Theta_hat = utils.run_dpf(
+                                dpf_repo_dir,
+                                dpf_results_dir,
+                                dpf_settings,
+                                idx_map_dir=dpf_subdir,
+                                true_N=N,
+                                true_M=M,
+                            )
+                            with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                                pickle.dump((W_hat, Theta_hat), f)
 
-                elif variant == "z-theta-concat":
-                    #  'z-theta-concat' is DSBM (no meta) and dPF combo
-                    try:
-                        with open(
-                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
-                        ) as f:
-                            Z_hat_joint, Z_trans = pickle.load(f)
-                        assert Z_hat_joint.shape[-1] == Q
-                        tqdm.write("Loaded DSBM results for given config")
-                    except (FileNotFoundError, AssertionError):
-                        tqdm.write("Running DSBM (no meta)")
-                        Z_hat, Z_trans = utils.run_dsbmm(
-                            dsbmm_data,
-                            dsbmm_datadir,
-                            Q,
-                            ignore_meta=True,
-                            datetime_str=dsbmm_res_str,
-                            deg_corr=deg_corr,
-                            directed=directed,
-                        )
-                        with open(
-                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
-                        ) as f:
-                            pickle.dump((Z_hat_joint, Z_trans), f)
-                    try:
-                        with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                            W_hat, Theta_hat = pickle.load(f)
-                        assert W_hat.shape[-1] == K
-                        tqdm.write("Loaded dPF results for given config")
-                    except (FileNotFoundError, AssertionError):
-                        tqdm.write("Running dPF")
-                        W_hat, Theta_hat = utils.run_dpf(
-                            dpf_repo_dir,
-                            dpf_results_dir,
-                            dpf_settings,
-                            idx_map_dir=dpf_subdir,
-                            true_N=N,
-                            true_M=M,
-                        )
-                        with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                            pickle.dump((W_hat, Theta_hat), f)
-                else:
-                    # 'z-only' is just DSBM (no meta)
-                    try:
-                        with open(
-                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
-                        ) as f:
-                            Z_hat_joint, Z_trans = pickle.load(f)
-                        assert Z_hat_joint.shape[-1] == Q
-                        tqdm.write("Loaded DSBM results for given config")
-                    except (FileNotFoundError, AssertionError):
-                        tqdm.write("Running DSBM (no meta)")
-                        Z_hat, Z_trans = utils.run_dsbmm(
-                            dsbmm_data,
-                            dsbmm_datadir,
-                            Q,
-                            ignore_meta=True,
-                            datetime_str=dsbmm_res_str,
-                            deg_corr=deg_corr,
-                            directed=directed,
-                        )
-                        with open(
-                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
-                        ) as f:
-                            pickle.dump((Z_hat_joint, Z_trans), f)
-                    try:
-                        with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                            W_hat, Theta_hat = pickle.load(f)
-                        assert W_hat.shape[-1] == K
-                        tqdm.write("Loaded dPF results for given config")
-                    except (FileNotFoundError, AssertionError):
-                        tqdm.write("Running dPF")
-                        W_hat, Theta_hat = utils.run_dpf(
-                            dpf_repo_dir,
-                            dpf_results_dir,
-                            dpf_settings,
-                            idx_map_dir=dpf_subdir,
-                            true_N=N,
-                            true_M=M,
-                        )
-                        with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                            pickle.dump((W_hat, Theta_hat), f)
+                    elif variant == "theta-only":
+                        # 'theta-only' is just dPF, but aiming
+                        # to try per-author subs. as well
+                        try:
+                            with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                                W_hat, Theta_hat = pickle.load(f)
+                            assert W_hat.shape[-1] == K
+                            tqdm.write("Loaded dPF results for given config")
+                        except (FileNotFoundError, AssertionError):
+                            tqdm.write("Running dPF")
+                            W_hat, Theta_hat = utils.run_dpf(
+                                dpf_repo_dir,
+                                dpf_results_dir,
+                                dpf_settings,
+                                idx_map_dir=dpf_subdir,
+                                true_N=N,
+                                true_M=M,
+                            )
+                            with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                                pickle.dump((W_hat, Theta_hat), f)
 
-                Rho_hat = np.zeros((N, T - 1, Q + K))
-                if variant == "z-only":
-                    Rho_hat[:, :, :Q] = Z_hat
-                elif variant == "theta-only":
-                    Rho_hat[:, :, :K] = Theta_hat
-                elif variant == "z-theta-concat":
-                    Rho_hat[:, :, :Q] = Z_hat
-                    Rho_hat[:, :, Q:] = Theta_hat
-                else:
-                    Rho_hat[:, :, :Q] = Z_hat_joint
+                    elif variant == "z-theta-concat":
+                        #  'z-theta-concat' is DSBM (no meta) and dPF combo
+                        try:
+                            with open(
+                                dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
+                            ) as f:
+                                Z_hat_joint, Z_trans = pickle.load(f)
+                            assert Z_hat_joint.shape[-1] == Q
+                            tqdm.write("Loaded DSBM results for given config")
+                        except (FileNotFoundError, AssertionError):
+                            tqdm.write("Running DSBM (no meta)")
+                            Z_hat, Z_trans = utils.run_dsbmm(
+                                dsbmm_data,
+                                dsbmm_datadir,
+                                Q,
+                                ignore_meta=True,
+                                datetime_str=dsbmm_res_str,
+                                deg_corr=deg_corr,
+                                directed=directed,
+                            )
+                            with open(
+                                dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
+                            ) as f:
+                                pickle.dump((Z_hat_joint, Z_trans), f)
+                        try:
+                            with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                                W_hat, Theta_hat = pickle.load(f)
+                            assert W_hat.shape[-1] == K
+                            tqdm.write("Loaded dPF results for given config")
+                        except (FileNotFoundError, AssertionError):
+                            tqdm.write("Running dPF")
+                            W_hat, Theta_hat = utils.run_dpf(
+                                dpf_repo_dir,
+                                dpf_results_dir,
+                                dpf_settings,
+                                idx_map_dir=dpf_subdir,
+                                true_N=N,
+                                true_M=M,
+                            )
+                            with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                                pickle.dump((W_hat, Theta_hat), f)
+                    else:
+                        # 'z-only' is just DSBM (no meta)
+                        try:
+                            with open(
+                                dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
+                            ) as f:
+                                Z_hat_joint, Z_trans = pickle.load(f)
+                            assert Z_hat_joint.shape[-1] == Q
+                            tqdm.write("Loaded DSBM results for given config")
+                        except (FileNotFoundError, AssertionError):
+                            tqdm.write("Running DSBM (no meta)")
+                            Z_hat, Z_trans = utils.run_dsbmm(
+                                dsbmm_data,
+                                dsbmm_datadir,
+                                Q,
+                                ignore_meta=True,
+                                datetime_str=dsbmm_res_str,
+                                deg_corr=deg_corr,
+                                directed=directed,
+                            )
+                            with open(
+                                dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
+                            ) as f:
+                                pickle.dump((Z_hat_joint, Z_trans), f)
+                        try:
+                            with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                                W_hat, Theta_hat = pickle.load(f)
+                            assert W_hat.shape[-1] == K
+                            tqdm.write("Loaded dPF results for given config")
+                        except (FileNotFoundError, AssertionError):
+                            tqdm.write("Running dPF")
+                            W_hat, Theta_hat = utils.run_dpf(
+                                dpf_repo_dir,
+                                dpf_results_dir,
+                                dpf_settings,
+                                idx_map_dir=dpf_subdir,
+                                true_N=N,
+                                true_M=M,
+                            )
+                            with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                                pickle.dump((W_hat, Theta_hat), f)
 
-                m.fit(
-                    Y[1:],
-                    A,
-                    Rho_hat,
-                    W_hat,
-                    Y[:-1],
-                    Z_trans=Z_trans,
-                    use_old_subs=use_old_subs,
-                )
+                    Rho_hat = np.zeros((N, T - 1, Q + K))
+                    if variant == "z-only":
+                        Rho_hat[:, :, :Q] = Z_hat
+                    elif variant == "theta-only":
+                        Rho_hat[:, :, :K] = Theta_hat
+                    elif variant == "z-theta-concat":
+                        Rho_hat[:, :, :Q] = Z_hat
+                        Rho_hat[:, :, Q:] = Theta_hat
+                    else:
+                        Rho_hat[:, :, :Q] = Z_hat_joint
+
+                    m.fit(
+                        Y[1:],
+                        A,
+                        Rho_hat,
+                        W_hat,
+                        Y[:-1],
+                        Z_trans=Z_trans,
+                        use_old_subs=use_old_subs,
+                    )
 
             Beta_p = m.E_beta
             # now that calculation is done, when ranking should not count
