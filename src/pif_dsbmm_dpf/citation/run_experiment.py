@@ -277,11 +277,11 @@ def main(argv):
             # if model == "spf":
             #     m.fit(Y[1:], A, Y[:-1])
             if model == "no_unobs":
-                m.fit(Y[1:], A, Z, W, Y[:-1])
+                m.fit(Y[1:], A, Z[:, :-1, :], W[:, :-1, :], Y[:-1])
             elif model == "topic_only_oracle":
-                m.fit(Y[1:], A, Z, W, Y[:-1])
+                m.fit(Y[1:], A, Z[:, :-1, :], W[:, :-1, :], Y[:-1])
             elif model == "network_only_oracle":
-                m.fit(Y[1:], A, Z, W, Y[:-1])
+                m.fit(Y[1:], A, Z[:, :-1, :], W[:, :-1, :], Y[:-1])
             # elif model == "network_pref_only":
             #     network_model = nm.NetworkPoissonMF(n_components=Q)
             #     network_model.fit(A)
@@ -295,8 +295,8 @@ def main(argv):
             #     Z_hat = np.zeros((N, Q))
             #     m.fit(Y[1:], A, Z_hat, W_hat, Y[:-1])
             elif model == "unadjusted":
-                Z_hat = np.zeros((N, Q))
-                W_hat = np.zeros((M, K))
+                Z_hat = np.zeros((N, T - 1, Q))
+                W_hat = np.zeros((M, T - 1, K))
                 m.fit(Y[1:], A, Z_hat, W_hat, Y[:-1])
             # elif model == "pif":
             # if variant == "z-theta-joint":
