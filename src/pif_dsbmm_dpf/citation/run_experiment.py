@@ -440,8 +440,9 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                         ) as f:
                             Z_hat_joint, Z_trans = pickle.load(f)
+                        assert Z_hat_joint.shape[-1] == Q
                         tqdm.write("Loaded DSBMM results for given config")
-                    except FileNotFoundError:
+                    except (FileNotFoundError, AssertionError):
                         # only run if not already done
                         tqdm.write("Running DSBMM")
                         h_l = 2
@@ -466,8 +467,9 @@ def main(argv):
                     try:
                         with open(dpf_results_dir / dpf_res_name, "rb") as f:
                             W_hat, Theta_hat = pickle.load(f)
+                        assert W_hat.shape[-1] == K
                         tqdm.write("Loaded dPF results for given config")
-                    except FileNotFoundError:
+                    except (FileNotFoundError, AssertionError):
                         tqdm.write("Running dPF")
                         W_hat, Theta_hat = utils.run_dpf(
                             dpf_repo_dir,
@@ -485,8 +487,9 @@ def main(argv):
                     try:
                         with open(dpf_results_dir / dpf_res_name, "rb") as f:
                             W_hat, Theta_hat = pickle.load(f)
+                        assert W_hat.shape[-1] == K
                         tqdm.write("Loaded dPF results for given config")
-                    except FileNotFoundError:
+                    except (FileNotFoundError, AssertionError):
                         tqdm.write("Running dPF")
                         W_hat, Theta_hat = utils.run_dpf(
                             dpf_repo_dir,
@@ -506,8 +509,9 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                         ) as f:
                             Z_hat_joint, Z_trans = pickle.load(f)
+                        assert Z_hat_joint.shape[-1] == Q
                         tqdm.write("Loaded DSBM results for given config")
-                    except FileNotFoundError:
+                    except (FileNotFoundError, AssertionError):
                         tqdm.write("Running DSBM (no meta)")
                         Z_hat, Z_trans = utils.run_dsbmm(
                             dsbmm_data,
@@ -525,8 +529,9 @@ def main(argv):
                     try:
                         with open(dpf_results_dir / dpf_res_name, "rb") as f:
                             W_hat, Theta_hat = pickle.load(f)
+                        assert W_hat.shape[-1] == K
                         tqdm.write("Loaded dPF results for given config")
-                    except FileNotFoundError:
+                    except (FileNotFoundError, AssertionError):
                         tqdm.write("Running dPF")
                         W_hat, Theta_hat = utils.run_dpf(
                             dpf_repo_dir,
@@ -545,8 +550,9 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                         ) as f:
                             Z_hat_joint, Z_trans = pickle.load(f)
+                        assert Z_hat_joint.shape[-1] == Q
                         tqdm.write("Loaded DSBM results for given config")
-                    except FileNotFoundError:
+                    except (FileNotFoundError, AssertionError):
                         tqdm.write("Running DSBM (no meta)")
                         Z_hat, Z_trans = utils.run_dsbmm(
                             dsbmm_data,
@@ -564,8 +570,9 @@ def main(argv):
                     try:
                         with open(dpf_results_dir / dpf_res_name, "rb") as f:
                             W_hat, Theta_hat = pickle.load(f)
+                        assert W_hat.shape[-1] == K
                         tqdm.write("Loaded dPF results for given config")
-                    except FileNotFoundError:
+                    except (FileNotFoundError, AssertionError):
                         tqdm.write("Running dPF")
                         W_hat, Theta_hat = utils.run_dpf(
                             dpf_repo_dir,
