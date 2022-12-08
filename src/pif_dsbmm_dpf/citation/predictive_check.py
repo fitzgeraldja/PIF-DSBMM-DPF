@@ -130,7 +130,12 @@ def calculate_ppc_dsbmm(
             i_degs = [deg["i"][:, 1] for deg in degs]  # out deg
             j_degs = [deg["j"][:, 0] for deg in degs]  # in deg
         e_rates = [
-            np.einsum("eq,qr,er->e", i_deg * i_prob, block_probs, j_deg * j_prob)
+            np.einsum(
+                "eq,qr,er->e",
+                i_deg[:, np.newaxis] * i_prob,
+                block_probs,
+                j_deg[:, np.newaxis] * j_prob,
+            )
             for i_deg, i_prob, j_deg, j_prob in zip(i_degs, i_probs, j_degs, j_probs)
         ]
     else:
