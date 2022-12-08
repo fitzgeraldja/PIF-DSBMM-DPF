@@ -100,7 +100,7 @@ def get_dpf_res_dir(dpf_settings):
         #     sa << "-dui";
         "dui",
     ]
-    if "-nthreads" in dpf_settings.keys():
+    if "-num_threads" in dpf_settings.keys():
         tmp_dir_comps.append("nthreads" + str(dpf_settings["-num_threads"]))
         # assume not fixing item params
         # if (fixed_item_param)
@@ -145,6 +145,7 @@ def run_dpf(
     try:
         assert run_res_dir.exists()
     except AssertionError:
+        print(run_res_dir)
         raise RuntimeError("dPF run failed")
     # dPF saves item (topic) factors as beta,
     # and user (author) factors as theta
