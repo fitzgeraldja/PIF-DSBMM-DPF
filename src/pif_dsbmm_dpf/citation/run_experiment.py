@@ -98,6 +98,8 @@ def main(argv):
     else:
         meta_choices = meta_choices.split(",")
     edge_weight_choice = FLAGS.edge_weight_choice
+    extra_str = "old_subs" if use_old_subs else "upd_subs"
+    extra_str += f"_ewc{edge_weight_choice}_rcol{region_col_id}"
     if edge_weight_choice == "none":
         edge_weight_choice = None
 
@@ -124,7 +126,7 @@ def main(argv):
 
     sim_model_path = datadir / f"{sim_model_str}.pkl"
 
-    write = outdir / (model + "." + variant + "_model_fitted_params")
+    write = outdir / (model + "." + variant + extra_str + "_model_fitted_params")
     write.mkdir(exist_ok=True)
 
     if seed is not None:
@@ -176,12 +178,18 @@ def main(argv):
         for (noise, confounding) in tqdm(
             confounding_configs, desc="Confounding configs", position=1, leave=False
         ):
-            tqdm.write(
-                f"""Working on confounding setting with prob: {ct}
-                and cov. 1/cov. 2 confounding strength:
-                {(noise, confounding)}
-                """
-            )
+            outfile = write / ("conf=" + str((noise, confounding)) + ";conf_type=" + ct)
+            try:
+                tmp = np.load(outfile)
+                tqdm.write("Skipping this config as already done.")
+                continue
+            except FileNotFoundError:
+                tqdm.write(
+                    f"""Working on confounding setting with prob: {ct}
+                    and cov. 1/cov. 2 confounding strength:
+                    {(noise, confounding)}
+                    """
+                )
             sys.stdout.flush()
 
             Y = simulation_model.make_multi_covariate_simulation(
@@ -681,7 +689,6 @@ def main(argv):
             tqdm.write(f"Overlaps: {np.round(scores,3)}, \nMSE: {np.round(loss,3)}")
             tqdm.write(f"{'*' * 60}")
             sys.stdout.flush()
-            outfile = write / ("conf=" + str((noise, confounding)) + ";conf_type=" + ct)
             np.savez_compressed(outfile, fitted=Beta_p, true=Beta)
 
 
