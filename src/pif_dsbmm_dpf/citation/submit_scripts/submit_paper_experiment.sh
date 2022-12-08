@@ -31,8 +31,8 @@ do
 	done
 done
 
-# spf network_pref_only topic_only removed
-for MODEL_ITER in unadjusted no_unobs topic_only_oracle;
+# spf removed
+for MODEL_ITER in unadjusted no_unobs topic_only_oracle network_pref_only topic_only;
 do
 	for SIM_ITER in {1..5};
 	do
