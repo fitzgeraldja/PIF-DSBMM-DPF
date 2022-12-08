@@ -467,6 +467,9 @@ def gen_subset_dpf(
     # finally write to new files
     for fname, df in zip(out_fnames, [dpf_train, dpf_val, dpf_test]):
         df.to_csv(fname, sep="\t", header=False, index=False)
+    dpf_test[["auid_idx"]].to_csv(
+        out_dir / "test_users.tsv", sep="\t", header=False, index=False
+    )
 
     return dpf_train, dpf_val, dpf_test
 
@@ -596,6 +599,9 @@ def convert_to_dpf_format(
     # finally write to new files
     for fname, df in zip(out_fnames, [dpf_train, dpf_val, dpf_test]):
         df.to_csv(fname, sep="\t", header=False, index=False)
+    dpf_test[["auid_idx"]].to_csv(
+        out_dir / "test_users.tsv", sep="\t", header=False, index=False
+    )
 
     return dpf_train, dpf_val, dpf_test
 
