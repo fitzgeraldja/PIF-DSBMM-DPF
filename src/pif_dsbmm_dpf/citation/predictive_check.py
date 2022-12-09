@@ -194,11 +194,11 @@ def evaluate_random_subset_dpf(heldout_idxs, obs_y, theta, beta, metric="logll")
     """
     expbeta, exptheta = np.exp(beta), np.exp(theta)
     subtheta = [
-        exptheta[h_idx[0], t * np.ones(len(h_idx[0])), :]
+        exptheta[h_idx[0], t * np.ones(len(h_idx[0]), dtype=int), :]
         for t, h_idx in enumerate(heldout_idxs)
     ]
     subbeta = [
-        expbeta[h_idx[1], t * np.ones(len(h_idx[1])), :]
+        expbeta[h_idx[1], t * np.ones(len(h_idx[1]), dtype=int), :]
         for t, h_idx in enumerate(heldout_idxs)
     ]
     expected = [(st * sb).sum(axis=-1).squeeze() for st, sb in zip(subtheta, subbeta)]
