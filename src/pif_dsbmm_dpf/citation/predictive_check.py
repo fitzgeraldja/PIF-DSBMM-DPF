@@ -133,18 +133,22 @@ def calculate_ppc_dsbmm(
             np.einsum(
                 "eq,qr,er->e",
                 i_deg[:, np.newaxis] * i_prob,
-                block_probs,
+                block_prob,
                 j_deg[:, np.newaxis] * j_prob,
             )
-            for i_deg, i_prob, j_deg, j_prob in zip(i_degs, i_probs, j_degs, j_probs)
+            for i_deg, i_prob, j_deg, j_prob, block_prob in zip(
+                i_degs, i_probs, j_degs, j_probs, block_probs.transpose(2, 0, 1)
+            )
         ]
     else:
         # shouldn't matter if directed or not if ndc, as either block probs
         # will be symmetric (undir) or not (dir) and otherwise form
         # is same
         e_probs = [
-            np.einsum("eq,qr,er->e", i_prob, block_probs, j_prob)
-            for i_prob, j_prob in zip(i_probs, j_probs)
+            np.einsum("eq,qr,er->e", i_prob, block_prob, j_prob)
+            for i_prob, j_prob, block_prob in zip(
+                i_probs, j_probs, block_probs.transpose(2, 0, 1)
+            )
         ]
     if deg_corr:
         replicated = [poisson.rvs(er) for er in e_rates]
