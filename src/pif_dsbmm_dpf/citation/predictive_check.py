@@ -223,7 +223,7 @@ def mask_topics(samp_size, n_cats):
     :return: random_topics
     :rtype: np.ndarray
     """
-    cats = np.arange(n_cats)
+    cats = np.arange(n_cats, dtype=int)
     random_topics = np.random.choice(cats, size=samp_size)
     return random_topics
 
@@ -289,9 +289,9 @@ def main():
         T = len(Y)
         masked_friends = [mask_topics(N, N) for _ in range(T - 1)]
         past_masked_topics = [mask_topics(N, M) for _ in range(T - 1)]
-        aus = np.arange(N)
-        masked_friends = [(aus, mf) for mf in masked_friends]
-        past_masked_topics = [(aus, pmt) for pmt in past_masked_topics]
+        aus = np.arange(N, dtype=int)
+        masked_friends = [(aus.copy(), mf) for mf in masked_friends]
+        past_masked_topics = [(aus.copy(), pmt) for pmt in past_masked_topics]
 
         Y_past_train = [Y_t.copy() for Y_t in Y[:-1]]
         A_train = [A_t.copy() for A_t in A]
