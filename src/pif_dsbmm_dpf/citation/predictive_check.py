@@ -52,11 +52,11 @@ def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta):
     #     np.concatenate([t * np.ones(len(x[0])) for t, x in enumerate(heldout_idxs)]),
     # )
     subtheta = [
-        exptheta[h_idx[0], t * np.ones(len(h_idx[0])), :]
+        exptheta[h_idx[0], t * np.ones(len(h_idx[0]), dtype=int), :]
         for t, h_idx in enumerate(heldout_idxs)
     ]
     subbeta = [
-        expbeta[h_idx[1], t * np.ones(len(h_idx[1])), :]
+        expbeta[h_idx[1], t * np.ones(len(h_idx[1]), dtype=int), :]
         for t, h_idx in enumerate(heldout_idxs)
     ]
     rates = [(st * sb).sum(axis=-1) for st, sb in zip(subtheta, subbeta)]
