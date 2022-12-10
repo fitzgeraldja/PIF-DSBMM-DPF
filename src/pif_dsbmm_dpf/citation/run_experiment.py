@@ -463,7 +463,7 @@ def main(argv):
                     m.fit(
                         Y[1:],
                         A,
-                        Rho_hat,
+                        Z_hat_joint,
                         W_hat,
                         Y[:-1],
                         Z_trans=Z_trans,
@@ -493,7 +493,7 @@ def main(argv):
                     m.fit(
                         Y[1:],
                         A,
-                        Rho_hat,
+                        Z_hat,
                         W_hat,
                         Y[:-1],
                         Z_trans=Z_trans,
