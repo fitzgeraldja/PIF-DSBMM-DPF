@@ -369,7 +369,7 @@ def main():
                     save_path=dsbmm_datadir / f"{sim_model_path.stem}_dsbmm_data.pkl",
                 )
 
-            replicates = 20
+            replicates = 10
             A_predictive_score = 0.0
             YP_pred_score = 0.0
             for _ in range(replicates):
