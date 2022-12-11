@@ -418,6 +418,14 @@ def main():
             x_auc[exp_idx][k_idx] = evaluate_random_subset_dpf(
                 past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="logll"
             )
+            # save results each iteration, so don't lose everything
+            # if something goes wrong
+            with open(outdir / "dsbmm_ppc_results.pkl", "wb") as f:
+                pickle.dump(a_score, f)
+            with open(outdir / "dpf_ppc_results.pkl", "wb") as f:
+                pickle.dump(x_score, f)
+            with open(outdir / "dpf_auc_results.pkl", "wb") as f:
+                pickle.dump(x_auc, f)
 
     print("A ppc scores across choices of num components:", a_score.mean(axis=0))
     print("X ppc scores across choices of num components:", x_score.mean(axis=0))
@@ -429,7 +437,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-dir", type=str, default="/scratch/fitzgeraldj/data/caus_inf_data/"
     )
+    parser.add_argument(
+        "--out-dir", type=str, default="/scratch/fitzgeraldj/data/caus_inf_data/results"
+    )
     args = parser.parse_args()
     datadir = Path(args.data_dir)
+    outdir = Path(args.out_dir)
     main_code_dir = Path("~/Documents/main_project/post_confirmation/code").expanduser()
     main()
