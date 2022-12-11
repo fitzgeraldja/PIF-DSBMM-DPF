@@ -796,3 +796,21 @@ def safe_sparse_toarray(sparse_mat):
         return sparse_mat.toarray()
     except AttributeError:
         return sparse_mat
+
+
+def verify_dsbmm_results(Q: int, pred_Z: np.ndarray, pred_pi: np.ndarray):
+    if type(pred_Z) == np.ndarray:
+        assert pred_Z.shape[-1] == Q
+        if len(pred_Z.shape) == 4:
+            pred_Z = pred_Z[0]
+    elif type(pred_Z) == list:
+        assert pred_Z[0].shape[-1] == Q
+        pred_Z = pred_Z[0]
+    if type(pred_pi) == np.ndarray:
+        assert pred_pi.shape[-2:] == (Q, Q)
+        if len(pred_pi.shape) == 3:
+            pred_pi = pred_pi[0]
+    elif type(pred_pi) == list:
+        assert pred_pi[0].shape[-2:] == (Q, Q)
+        pred_pi = pred_pi[0]
+    return pred_Z, pred_pi

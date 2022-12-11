@@ -437,7 +437,9 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                         ) as f:
                             Z_hat_joint, Z_trans = pickle.load(f)
-                        assert Z_hat_joint.shape[-1] == Q
+                        Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
+                            Q, Z_hat_joint, Z_trans
+                        )
                         tqdm.write("Loaded DSBMM results for given config")
                     except (FileNotFoundError, AssertionError):
                         # only run if not already done
@@ -508,7 +510,9 @@ def main(argv):
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                             ) as f:
                                 Z_hat_joint, Z_trans = pickle.load(f)
-                            assert Z_hat_joint.shape[-1] == Q
+                            Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
+                                Q, Z_hat_joint, Z_trans
+                            )
                             tqdm.write("Loaded DSBMM results for given config")
                         except (FileNotFoundError, AssertionError):
                             # only run if not already done
@@ -578,7 +582,9 @@ def main(argv):
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                             ) as f:
                                 Z_hat, Z_trans = pickle.load(f)
-                            assert Z_hat.shape[-1] == Q
+                            Z_hat, Z_trans = utils.verify_dsbmm_results(
+                                Q, Z_hat, Z_trans
+                            )
                             tqdm.write("Loaded DSBM results for given config")
                         except (FileNotFoundError, AssertionError):
                             tqdm.write("Running DSBM (no meta)")
@@ -619,7 +625,10 @@ def main(argv):
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                             ) as f:
                                 Z_hat, Z_trans = pickle.load(f)
-                            assert Z_hat.shape[-1] == Q
+                            Z_hat, Z_trans = utils.verify_dsbmm_results(
+                                Q, Z_hat, Z_trans
+                            )
+
                             tqdm.write("Loaded DSBM results for given config")
                         except (FileNotFoundError, AssertionError):
                             tqdm.write("Running DSBM (no meta)")
@@ -635,7 +644,7 @@ def main(argv):
                             with open(
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
                             ) as f:
-                                pickle.dump((Z_hat_joint, Z_trans), f)
+                                pickle.dump((Z_hat, Z_trans), f)
                         try:
                             with open(dpf_results_dir / dpf_res_name, "rb") as f:
                                 W_hat, Theta_hat = pickle.load(f)
