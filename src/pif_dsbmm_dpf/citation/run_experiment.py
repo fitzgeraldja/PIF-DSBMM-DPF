@@ -97,7 +97,10 @@ def main(argv):
     else:
         meta_choices = meta_choices.split(",")
     edge_weight_choice = FLAGS.edge_weight_choice
-    extra_str = "old_subs" if use_old_subs else "upd_subs"
+    # extra_str = "old_subs" if use_old_subs else "upd_subs"
+    # using trans at least from hier model seems to make worse
+    # but can improve by using pres subs
+    extra_str = "pres_subs" if try_pres_subs else "old_subs"
     extra_str += f"_ewc{edge_weight_choice}_rcol{region_col_id}"
     if edge_weight_choice == "none":
         edge_weight_choice = None
