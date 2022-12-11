@@ -709,23 +709,49 @@ def run_dsbmm(
         assert len(node_probs) == 1
         node_probs = node_probs[0]
         pi = pi[0]
+        if ret_block_probs:
+            block_probs = block_probs[0]
     elif type(node_probs) == np.ndarray:
         if len(node_probs.shape) == 4:
             assert len(node_probs) == 1
             node_probs = node_probs[0]
             pi = pi[0]
+            if ret_block_probs:
+                block_probs = block_probs[0]
     if node_probs.shape[-1] != Q:
         if node_probs.shape[-1] < Q:
             dim_diff = Q - node_probs.shape[-1]
             node_probs = np.pad(
                 node_probs, ((0, 0), (0, 0), (0, dim_diff)), mode="constant"
             )
+            if pi.shape[-1] < Q:
+                if Q - pi.shape[-1] == dim_diff:
+                    pi = np.pad(pi, ((0, dim_diff), (0, dim_diff)), mode="constant")
+                else:
+                    tqdm.write(
+                        f"Warning: pi.shape[-1] = {pi.shape[-1]} != Q = {Q}, and can't pad to right shape"
+                    )
+                    tqdm.write("Won't be able to update subs using pi")
+            if ret_block_probs:
+                if block_probs.shape[0] < Q:
+                    if Q - block_probs.shape[0] == dim_diff:
+                        block_probs = np.pad(
+                            block_probs,
+                            ((0, dim_diff), (0, dim_diff), (0, 0)),
+                            mode="constant",
+                        )
+                    else:
+                        tqdm.write(
+                            f"Warning: block_probs.shape[0] = {block_probs.shape[0]} != Q = {Q}, and can't pad to right shape"
+                        )
+                        tqdm.write("Won't be able to check ppcs using block_probs")
+
         else:
             group_probs = np.nansum(node_probs, axis=(0, 1))
             if np.any(group_probs == 0):
                 # empty group idx, which should be removed
-                # but also won't be counted for pi, so
-                # can just drop
+                # but also won't be counted for pi, block_probs,
+                # so can just drop
                 node_probs = node_probs[:, :, group_probs > 0]
             if node_probs.shape[-1] > Q:
                 # actually fit extra groups, so need to remove
@@ -739,6 +765,13 @@ def run_dsbmm(
                     print(pi.shape, main_qs.shape, main_qs)
                     print(group_probs)
                     raise ValueError("Problem w pi shape")
+                if ret_block_probs:
+                    try:
+                        block_probs = block_probs[np.ix_(main_qs, main_qs), :]
+                    except:
+                        print(block_probs.shape, main_qs.shape, main_qs)
+                        print(group_probs)
+                        raise ValueError("Problem w block_probs shape")
     out_res = []
     if use_1hot_Z:
         out_res.append(pred_Z)
