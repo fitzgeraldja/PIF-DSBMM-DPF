@@ -767,7 +767,13 @@ def run_dsbmm(
                     raise ValueError("Problem w pi shape")
                 if ret_block_probs:
                     try:
-                        block_probs = block_probs[np.ix_(main_qs, main_qs), :]
+                        block_probs = block_probs[
+                            np.ix_(
+                                main_qs,
+                                main_qs,
+                                np.arange(block_probs.shape[-1], dtype=int),
+                            )
+                        ]
                     except:
                         print(block_probs.shape, main_qs.shape, main_qs)
                         print(group_probs)
