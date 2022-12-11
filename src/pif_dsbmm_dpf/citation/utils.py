@@ -702,82 +702,18 @@ def run_dsbmm(
     pi = res.pop(0)
     if ret_block_probs:
         block_probs = res.pop(0)
+    else:
+        block_probs = None
 
     # Z_hat(_joint) = node_probs  # in shape (N,T,Q)
-    if type(node_probs) == list:
-        # only support single run (or ret_best_only) for now
-        assert len(node_probs) == 1
-        node_probs = node_probs[0]
-        pi = pi[0]
-        if ret_block_probs:
-            block_probs = block_probs[0]
-    elif type(node_probs) == np.ndarray:
-        if len(node_probs.shape) == 4:
-            assert len(node_probs) == 1
-            node_probs = node_probs[0]
-            pi = pi[0]
-            if ret_block_probs:
-                block_probs = block_probs[0]
-    if node_probs.shape[-1] != Q:
-        if node_probs.shape[-1] < Q:
-            dim_diff = Q - node_probs.shape[-1]
-            node_probs = np.pad(
-                node_probs, ((0, 0), (0, 0), (0, dim_diff)), mode="constant"
-            )
-            if pi.shape[-1] < Q:
-                if Q - pi.shape[-1] == dim_diff:
-                    pi = np.pad(pi, ((0, dim_diff), (0, dim_diff)), mode="constant")
-                else:
-                    tqdm.write(
-                        f"Warning: pi.shape[-1] = {pi.shape[-1]} != Q = {Q}, and can't pad to right shape"
-                    )
-                    tqdm.write("Won't be able to update subs using pi")
-            if ret_block_probs:
-                if block_probs.shape[0] < Q:
-                    if Q - block_probs.shape[0] == dim_diff:
-                        block_probs = np.pad(
-                            block_probs,
-                            ((0, dim_diff), (0, dim_diff), (0, 0)),
-                            mode="constant",
-                        )
-                    else:
-                        tqdm.write(
-                            f"Warning: block_probs.shape[0] = {block_probs.shape[0]} != Q = {Q}, and can't pad to right shape"
-                        )
-                        tqdm.write("Won't be able to check ppcs using block_probs")
-
-        else:
-            group_probs = np.nansum(node_probs, axis=(0, 1))
-            if np.any(group_probs == 0):
-                # empty group idx, which should be removed
-                # but also won't be counted for pi, block_probs,
-                # so can just drop
-                node_probs = node_probs[:, :, group_probs > 0]
-            if node_probs.shape[-1] > Q:
-                # actually fit extra groups, so need to remove
-                tqdm.write(f"Fit {node_probs.shape[-1]} groups, but only {Q} requested")
-                tqdm.write("Removing extra groups")
-                main_qs = np.argsort(group_probs)[-Q:]
-                node_probs = node_probs[..., main_qs]
-                try:
-                    pi = pi[np.ix_(main_qs, main_qs)]
-                except:
-                    print(pi.shape, main_qs.shape, main_qs)
-                    print(group_probs)
-                    raise ValueError("Problem w pi shape")
-                if ret_block_probs:
-                    try:
-                        block_probs = block_probs[
-                            np.ix_(
-                                main_qs,
-                                main_qs,
-                                np.arange(block_probs.shape[-1], dtype=int),
-                            )
-                        ]
-                    except:
-                        print(block_probs.shape, main_qs.shape, main_qs)
-                        print(group_probs)
-                        raise ValueError("Problem w block_probs shape")
+    if use_1hot_Z:
+        pred_Z, pi, block_probs = clean_dsbmm_res(
+            Q, pred_Z, pi, ret_block_probs=ret_block_probs, block_probs=block_probs
+        )
+    else:
+        node_probs, pi, block_probs = clean_dsbmm_res(
+            Q, node_probs, pi, ret_block_probs=ret_block_probs, block_probs=block_probs
+        )
     out_res = []
     if use_1hot_Z:
         out_res.append(pred_Z)
@@ -787,6 +723,96 @@ def run_dsbmm(
     if ret_block_probs:
         out_res.append(block_probs)
     return out_res
+
+
+def clean_dsbmm_res(
+    Q: int,
+    Z_subs: Union[list[np.ndarray], np.ndarray],
+    Z_trans: Union[list[np.ndarray], np.ndarray],
+    ret_block_probs=False,
+    block_probs: Optional[Union[list[np.ndarray], np.ndarray]] = None,
+):
+    if ret_block_probs:
+        assert block_probs is not None
+    if type(Z_subs) == list:
+        # only support single run (or ret_best_only) for now
+        assert len(Z_subs) == 1
+        Z_subs = Z_subs[0]
+        Z_trans = Z_trans[0]
+        if ret_block_probs:
+            block_probs = block_probs[0]  # type: ignore
+    elif type(Z_subs) == np.ndarray:
+        if len(Z_subs.shape) == 4:
+            assert len(Z_subs) == 1
+            Z_subs = Z_subs[0]
+            Z_trans = Z_trans[0]
+            if ret_block_probs:
+                block_probs = block_probs[0]  # type: ignore
+    assert type(Z_subs) == np.ndarray
+    assert type(Z_trans) == np.ndarray
+    if ret_block_probs:
+        assert type(block_probs) == np.ndarray
+    if Z_subs.shape[-1] != Q:
+        if Z_subs.shape[-1] < Q:
+            dim_diff = Q - Z_subs.shape[-1]
+            Z_subs = np.pad(Z_subs, ((0, 0), (0, 0), (0, dim_diff)), mode="constant")
+            if Z_trans.shape[-1] < Q:
+                if Q - Z_trans.shape[-1] == dim_diff:
+                    Z_trans = np.pad(
+                        Z_trans, ((0, dim_diff), (0, dim_diff)), mode="constant"
+                    )
+                else:
+                    tqdm.write(
+                        f"Warning: pi.shape[-1] = {Z_trans.shape[-1]} != Q = {Q}, and can't pad to right shape"
+                    )
+                    tqdm.write("Won't be able to update subs using pi")
+            if ret_block_probs:
+                if block_probs.shape[0] < Q:  # type: ignore
+                    if Q - block_probs.shape[0] == dim_diff:  # type: ignore
+                        block_probs = np.pad(
+                            block_probs,
+                            ((0, dim_diff), (0, dim_diff), (0, 0)),
+                            mode="constant",
+                        )
+                    else:
+                        tqdm.write(
+                            f"Warning: block_probs.shape[0] = {block_probs.shape[0]} != Q = {Q}, and can't pad to right shape"  # type: ignore
+                        )
+                        tqdm.write("Won't be able to check ppcs using block_probs")
+
+        else:
+            group_probs = np.nansum(Z_subs, axis=(0, 1))
+            if np.any(group_probs == 0):
+                # empty group idx, which should be removed
+                # but also won't be counted for pi, block_probs,
+                # so can just drop
+                Z_subs = Z_subs[:, :, group_probs > 0]
+            if Z_subs.shape[-1] > Q:
+                # actually fit extra groups, so need to remove
+                tqdm.write(f"Fit {Z_subs.shape[-1]} groups, but only {Q} requested")
+                tqdm.write("Removing extra groups")
+                main_qs = np.argsort(group_probs)[-Q:]
+                Z_subs = Z_subs[..., main_qs]
+                try:
+                    Z_trans = Z_trans[np.ix_(main_qs, main_qs)]
+                except:
+                    print(Z_trans.shape, main_qs.shape, main_qs)
+                    print(group_probs)
+                    raise ValueError("Problem w pi shape")
+                if ret_block_probs:
+                    try:
+                        block_probs = block_probs[  # type: ignore
+                            np.ix_(
+                                main_qs,
+                                main_qs,
+                                np.arange(block_probs.shape[-1], dtype=int),  # type: ignore
+                            )
+                        ]
+                    except:
+                        print(block_probs.shape, main_qs.shape, main_qs)  # type: ignore
+                        print(group_probs)
+                        raise ValueError("Problem w block_probs shape")
+    return Z_subs, Z_trans, block_probs
 
 
 def mse(true, pred, for_beta=False) -> np.ndarray:

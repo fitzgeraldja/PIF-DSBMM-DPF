@@ -2,9 +2,7 @@
 This script runs the default experiments. In addition to what is noted in other
 scripts, extras to note are:
 - Influence is post-processed to be one if an author doesn't publish in a period
-- Script will allow choice of identifier in DSBMM-type data that corresponds to 'region',
-  but will overwrite previous data if exists -- should make separate directory
-  for runs with different choices
+- Script will allow choice of identifier in DSBMM-type data that corresponds to 'region'
 - Require DSBMM-type data in subdir, dsbmm_data - see reqs in that repo
 - Remove final time period for DSBMM data, so substitutes are for up to T-1
   -- final time period must currently be inferred using point estimate
@@ -383,7 +381,7 @@ def main(argv):
                     "-n": N,
                     "-m": M,
                     "-dir": str(dpf_subdir),
-                    "-rfreq": 10,  # check ll every 10 iterations
+                    "-rfreq": 5,  # check ll every 5 iterations
                     "-vprior": 10,  # prior on variance for transitions
                     "-num_threads": 64,  # number of threads to use
                     "-tpl": window_len,  # gap between time periods
@@ -442,6 +440,9 @@ def main(argv):
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                         ) as f:
                             Z_hat_joint, Z_trans = pickle.load(f)
+                        Z_hat_joint, Z_trans, _ = utils.clean_dsbmm_res(
+                            Q, Z_hat_joint, Z_trans
+                        )
                         Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
                             Q, Z_hat_joint, Z_trans
                         )
@@ -461,6 +462,9 @@ def main(argv):
                             datetime_str=dsbmm_res_str,
                             deg_corr=deg_corr,
                             directed=directed,
+                        )
+                        Z_hat_joint, Z_trans, _ = utils.clean_dsbmm_res(
+                            Q, Z_hat_joint, Z_trans
                         )
                         with open(
                             dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
@@ -515,6 +519,9 @@ def main(argv):
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                             ) as f:
                                 Z_hat_joint, Z_trans = pickle.load(f)
+                            Z_hat_joint, Z_trans, _ = utils.clean_dsbmm_res(
+                                Q, Z_hat_joint, Z_trans
+                            )
                             Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
                                 Q, Z_hat_joint, Z_trans
                             )
@@ -587,6 +594,7 @@ def main(argv):
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                             ) as f:
                                 Z_hat, Z_trans = pickle.load(f)
+                            Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
                             Z_hat, Z_trans = utils.verify_dsbmm_results(
                                 Q, Z_hat, Z_trans
                             )
@@ -602,6 +610,7 @@ def main(argv):
                                 deg_corr=deg_corr,
                                 directed=directed,
                             )
+                            Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
                             with open(
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
                             ) as f:
@@ -630,6 +639,7 @@ def main(argv):
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
                             ) as f:
                                 Z_hat, Z_trans = pickle.load(f)
+                            Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
                             Z_hat, Z_trans = utils.verify_dsbmm_results(
                                 Q, Z_hat, Z_trans
                             )
@@ -646,6 +656,7 @@ def main(argv):
                                 deg_corr=deg_corr,
                                 directed=directed,
                             )
+                            Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
                             with open(
                                 dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
                             ) as f:

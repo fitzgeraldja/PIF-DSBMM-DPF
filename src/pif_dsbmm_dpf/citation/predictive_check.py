@@ -321,7 +321,7 @@ def main():
                 "-n": N,
                 "-m": M,
                 "-dir": str(dpf_subdir),
-                "-rfreq": 10,  # check ll every 10 iterations
+                "-rfreq": 5,  # check ll every 5 iterations
                 "-vprior": 10,  # prior on variance for transitions
                 "-num_threads": 64,  # number of threads to use
                 "-tpl": window_len,  # gap between time periods
