@@ -384,7 +384,7 @@ def main(argv):
                     "-dir": str(dpf_subdir),
                     "-rfreq": 5,  # check ll every 5 iterations
                     "-vprior": 10,  # prior on variance for transitions
-                    "-num_threads": 64,  # number of threads to use
+                    "-num_threads": 8,  # number of threads to use
                     "-tpl": window_len,  # gap between time periods
                     # -- assume passing time in years, so this
                     # is window length in years

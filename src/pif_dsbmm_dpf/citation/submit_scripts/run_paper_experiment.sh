@@ -11,4 +11,5 @@ python -m citation.run_experiment \
 --configs=${CONFIGS} \
 --seed=${SEED} \
 --region_col_id=${REGION_COL_ID} \
---${USE_OLD_SUBS}
+--${USE_OLD_SUBS} \
+--${TRY_PRES_SUBS}
