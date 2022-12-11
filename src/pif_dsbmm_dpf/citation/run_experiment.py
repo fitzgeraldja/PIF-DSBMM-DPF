@@ -108,7 +108,9 @@ def main(argv):
         (int(c.split(",")[0]), int(c.split(",")[1])) for c in configs.split(":")
     ]
     datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
-    base_sim_str = f"cnfdr_type{confounding_type}_cnfdr_cfg{confounding_configs}"
+    base_sim_str = (
+        f"cnfdr_type{confounding_type}_cnfdr_cfg{confounding_configs}_{region_col_id}"
+    )
     if seed is not None:
         sim_model_str = f"seed{seed}_{base_sim_str}"
     else:
@@ -123,6 +125,8 @@ def main(argv):
 
     print("Confounding configs:", confounding_configs)
     print("Model:", model)
+    print("Variant:", variant)
+    print("Subs:", "old_subs" if use_old_subs else "upd_subs")
 
     sim_model_path = datadir / f"{sim_model_str}.pkl"
 
