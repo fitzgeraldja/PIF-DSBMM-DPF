@@ -86,6 +86,7 @@ def main(argv):
     influence_shp = FLAGS.influence_strength
 
     use_old_subs = FLAGS.use_old_subs
+    try_pres_subs = FLAGS.try_pres_subs
 
     region_col_id = FLAGS.region_col_id
     meta_choices = FLAGS.meta_choice
@@ -287,11 +288,11 @@ def main(argv):
             # if model == "spf":
             #     m.fit(Y[1:], A, Y[:-1])
             if model == "no_unobs":
-                m.fit(Y[1:], A, Z[:, :-1, :], W[:, :-1, :], Y[:-1])
+                m.fit(Y[1:], A, Z[:, 1:, :], W[:, 1:, :], Y[:-1])
             elif model == "topic_only_oracle":
-                m.fit(Y[1:], A, Z[:, :-1, :], W[:, :-1, :], Y[:-1])
+                m.fit(Y[1:], A, Z[:, 1:, :], W[:, 1:, :], Y[:-1])
             elif model == "network_only_oracle":
-                m.fit(Y[1:], A, Z[:, :-1, :], W[:, :-1, :], Y[:-1])
+                m.fit(Y[1:], A, Z[:, 1:, :], W[:, 1:, :], Y[:-1])
 
             elif model == "unadjusted":
                 Z_hat = np.zeros((N, T - 1, Q))
@@ -471,6 +472,11 @@ def main(argv):
                         ) as f:
                             pickle.dump((Z_hat_joint, Z_trans), f)
                     W_hat = np.zeros((M, T - 1, K))
+                    if try_pres_subs:
+                        # change to present subs inferred where possible
+                        Z_hat_joint[:, :-1, :] = Z_hat_joint[:, 1:, :]
+                        # W_hat[:,:-1,:] = W_hat[:,1:,:]
+
                     m.fit(
                         Y[1:],
                         A,
@@ -501,6 +507,10 @@ def main(argv):
                             pickle.dump((W_hat, Theta_hat), f)
                     Z_hat = np.zeros((N, T - 1, Q))
                     Z_trans = np.ones((Q, Q)) / Q
+                    if try_pres_subs:
+                        # change to present subs inferred where possible
+                        # Z_hat[:,:-1,:] = Z_hat[:,1:,:]
+                        W_hat[:, :-1, :] = W_hat[:, 1:, :]
                     m.fit(
                         Y[1:],
                         A,
@@ -690,6 +700,10 @@ def main(argv):
                     else:
                         # z-theta-joint
                         Rho_hat[:, :, :Q] = Z_hat_joint
+
+                    if try_pres_subs:
+                        # change to present subs inferred where possible
+                        Rho_hat[:, :-1, :] = Rho_hat[:, 1:, :]
 
                     m.fit(
                         Y[1:],
@@ -896,4 +910,14 @@ if __name__ == "__main__":
     )  # NB this will require being passed as either
     # --flag (meaning true), or --noflag (meaning false)
     # if passing explicitly for flag
+    flags.DEFINE_bool(
+        "try_pres_subs",
+        True,
+        """
+        Try using subs from DSBMM for present time period if available, else use old subs.
+        NB can be used in conjunction with use_old_subs, in which case would apply transition
+        to the pres subs if available, else the old subs, then use the result as the subs
+        """,
+    )  # NB this will require being passed as either
+
     app.run(main)
