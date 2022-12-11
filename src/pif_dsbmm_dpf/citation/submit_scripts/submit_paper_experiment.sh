@@ -17,26 +17,26 @@ do
 	do
 		for REGION_COL_ID_ITER in main_adm1_1hot main_ctry_1hot;
 		do
-			for USE_OLD_SUBS_ITER in use_old_subs nouse_old_subs;
+			# for USE_OLD_SUBS_ITER in use_old_subs nouse_old_subs;
+			# do
+			for TRY_PRES_SUBS_ITER in try_pres_subs notry_pres_subs;
 			do
-				for TRY_PRES_SUBS_ITER in try_pres_subs notry_pres_subs;
+				for SIM_ITER in {1..5};
 				do
-					for SIM_ITER in {1..5};
-					do
-						while ((${num_jobs@P}>=$num_procs)); do
-							wait -n
-						done
-						export SEED=${SIM_ITER}
-						export MODEL=${MODEL_ITER}
-						export VARIANT=${VAR_ITER}
-						export OUT_DIR=${BASE_DIR}/results/${SIM_ITER}/
-						export REGION_COL_ID=${REGION_COL_ID_ITER}
-						export USE_OLD_SUBS=${USE_OLD_SUBS_ITER}
-						export TRY_PRES_SUBS=${TRY_PRES_SUBS_ITER}
-						${MAIN_CODE_DIR}/citation/submit_scripts/run_paper_experiment.sh &
+					while ((${num_jobs@P}>=$num_procs)); do
+						wait -n
 					done
+					export SEED=${SIM_ITER}
+					export MODEL=${MODEL_ITER}
+					export VARIANT=${VAR_ITER}
+					export OUT_DIR=${BASE_DIR}/results/${SIM_ITER}/
+					export REGION_COL_ID=${REGION_COL_ID_ITER}
+					export USE_OLD_SUBS="use_old_subs" # ${USE_OLD_SUBS_ITER}
+					export TRY_PRES_SUBS=${TRY_PRES_SUBS_ITER}
+					${MAIN_CODE_DIR}/citation/submit_scripts/run_paper_experiment.sh &
 				done
 			done
+			# done
 		done
 	done
 done
@@ -46,13 +46,17 @@ for MODEL_ITER in unadjusted no_unobs topic_only_oracle network_pref_only topic_
 do
 	for SIM_ITER in {1..5};
 	do
+		while ((${num_jobs@P}>=$num_procs)); do
+			wait -n
+		done
 		export SEED=${SIM_ITER}
 		export MODEL=${MODEL_ITER}
 		export VARIANT=main
 		export OUT=${BASE_DIR}/results/${SIM_ITER}/
 		export REGION_COL_ID="main_adm1_1hot"
 		export USE_OLD_SUBS="use_old_subs"
-		${MAIN_CODE_DIR}/citation/submit_scripts/run_paper_experiment.sh
+		export TRY_PRES_SUBS="try_pres_subs"
+		${MAIN_CODE_DIR}/citation/submit_scripts/run_paper_experiment.sh &
 	done
 done
 
