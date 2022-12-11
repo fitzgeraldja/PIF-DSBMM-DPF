@@ -242,7 +242,7 @@ class CausalInfluenceModel:
                 assert Z_trans is not None
             except AssertionError:
                 raise ValueError("Must pass Z_trans if want to use updated subs")
-            Z = np.einsum("qr,ntq->ntr", Z_trans, Z)
+            Z = np.einsum("qr,itq->itr", Z_trans, Z)
             # NB no need to do update for W if dPF and only
             # using point estimates, as would only use
             # v_{k,t-1} = \hat{v}_{k,t-1} - \mu_{v_k}
