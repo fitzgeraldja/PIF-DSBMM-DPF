@@ -1,5 +1,5 @@
 #!/bin/bash
-BASE_DIR=/scratch/fitzgeraldj/data/caus_inf_data/
+BASE_DIR=/scratch/fitzgeraldj/data/caus_inf_data
 export IN_DIR=${BASE_DIR}
 export NUM_COMPONENTS=16
 export NUM_EXOG_COMPONENTS=8
