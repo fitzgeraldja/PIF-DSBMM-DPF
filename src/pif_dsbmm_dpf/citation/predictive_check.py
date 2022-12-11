@@ -327,7 +327,8 @@ def main():
                 "-tpl": window_len,  # gap between time periods
                 # -- assume passing time in years, so this
                 # is window length in years
-                "-max-iterations": 1000,  # max EM iterations
+                "-max-iterations": 10,  # max EM iterations
+                # - 10 usually seems enough
                 # -- NB patience only
                 # 3 checks w/o increase in ll
                 # so unlikely to reach
