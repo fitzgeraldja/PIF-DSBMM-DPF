@@ -358,7 +358,9 @@ class CausalInfluenceModel:
                 assert Z_trans is not None
             except AssertionError:
                 raise ValueError("Must pass Z_trans if want to use updated subs")
-            Z = np.einsum("qr,ntq->ntr", Z_trans, Z)
+            # again make sure to only update DSBMM elements, not theta from dPF
+            Q = Z_trans.shape[0]
+            Z[..., :Q] = np.einsum("qr,ntq->ntr", Z_trans, Z[..., :Q])
             # NB no need to do update for W if dPF and only
             # using point estimates, as would only use
             # v_{k,t-1} = \hat{v}_{k,t-1} - \mu_{v_k}
