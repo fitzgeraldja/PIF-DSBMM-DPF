@@ -329,6 +329,7 @@ def gen_dpf_data(
     datetime_str: Optional[str] = None,
     sim_tpcs: Optional[sparse.csr_array] = None,
     window_len: int = 3,
+    split_test: bool = True,
 ):
     subdir_str = sim_id if sim_id is not None else f"init:{datetime_str}"
     subdir = dpf_datadir / subdir_str
@@ -354,7 +355,7 @@ def gen_dpf_data(
             )
         else:
             dpf_train, dpf_val, dpf_test = convert_to_dpf_format(
-                sim_tpcs, subdir, window_len=window_len
+                sim_tpcs, subdir, window_len=window_len, split_test=split_test
             )
         tqdm.write("Done.")
     tqdm.write(
@@ -483,6 +484,7 @@ def convert_to_dpf_format(
     window_len: int = 3,
     val_frac: float = 0.1,
     binarise: bool = True,
+    split_test: bool = True,
 ):
     """Converts a list of sparse author-topic counts, length T, each shape
     (N,M) to dPF format -- note that by default we assume a window length
@@ -512,11 +514,20 @@ def convert_to_dpf_format(
     :type out_dir: Path
     :param window_len: time window length, defaults to 3
     :type window_len: int, optional
+    :param min_train_N: minimum training samples, defaults to 1000
+    :type min_train_N: int, optional
+    :param min_val_N: minimum val samples, defaults to 100
+    :type min_val_N: int, optional
+    :param min_test_N: minimum test samples, defaults to 300
+    :type min_test_N: int, optional
     :param val_frac: fraction of final period data to use for validation,
                      remainder (1-test_frac) used for test, defaults to 0.1
     :type val_frac: float, optional
     :param binarise: binarise data, as suggested for dPF, defaults to True
     :type binarise: bool, optional
+    :param split_test: make test set from final period, else only remove negligible
+                       amount to maximise available data, defaults to True
+    :type split_test: bool, optional
     :return: dpf_train, dpf_val, dpf_test
     :rtype: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
     """
@@ -539,8 +550,6 @@ def convert_to_dpf_format(
         ),
         columns=["auid_idx", "tpc_idx", "count", "windowed_year"],
     )
-    # now split final time period into val and test
-    val_idxs = np.random.rand(len(sim_tpcs[-1].data)) < val_frac
     fin_data = pd.DataFrame(
         np.stack(
             [
@@ -552,13 +561,20 @@ def convert_to_dpf_format(
         ),
         columns=["auid_idx", "tpc_idx", "count", "windowed_year"],
     )
-    dpf_val = fin_data[val_idxs]
-    dpf_test = fin_data[~val_idxs]
+    # now split final time period into val and test
+    if split_test:
+        val_idxs = np.random.rand(len(sim_tpcs[-1].data)) < val_frac
+        dpf_val = fin_data[val_idxs]
+        dpf_test = fin_data[~val_idxs]
+    else:
+        val_idxs = np.random.choice(len(fin_data), size=100, replace=False)
+        all_fin_idxs = np.arange(len(fin_data), dtype=int)
+        test_idxs = np.random.choice(
+            all_fin_idxs[~np.isin(all_fin_idxs, val_idxs)], size=100, replace=False
+        )
+        dpf_val = fin_data[val_idxs]
+        dpf_test = fin_data[test_idxs]
 
-    # gen reidx maps again here just in case -- in theory likely to be
-    # irrelevant here as data is synthetic, and should already have
-    # ensured that authors in final period are present previously, but
-    # keep for consistency
     # require that val,test aus + tpcs were present in train set
     dpf_train = dpf_train.astype(int)
     train_aus = np.unique(dpf_train.auid_idx.values)
@@ -575,10 +591,15 @@ def convert_to_dpf_format(
         tqdm.write(
             f"Warning, train set likely too small: only {len(dpf_train)} records"
         )
-    if len(dpf_val) < min_val_N:
-        tqdm.write(f"Warning, val set likely too small: only {len(dpf_val)} records")
-    if len(dpf_test) < min_test_N:
-        tqdm.write(f"Warning, test set likely too small: only {len(dpf_test)} records")
+    if split_test:
+        if len(dpf_val) < min_val_N:
+            tqdm.write(
+                f"Warning, val set likely too small: only {len(dpf_val)} records"
+            )
+        if len(dpf_test) < min_test_N:
+            tqdm.write(
+                f"Warning, test set likely too small: only {len(dpf_test)} records"
+            )
 
     # now need to reindex aus, tpcs for dPF to work
     au_idx_map = dict(zip(train_aus, np.arange(len(train_aus), dtype=int)))

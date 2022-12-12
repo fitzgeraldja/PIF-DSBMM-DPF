@@ -789,8 +789,10 @@ if __name__ == "__main__":
         """
         method to use selected from one of
         [
-            dsbmm_dpf, unadjusted, topic_only_oracle,
-            network_only_oracle, no_unobs (gold standard)
+            dsbmm_dpf, unadjusted,
+            topic_only, network_pref_only,
+            topic_only_oracle, network_only_oracle,
+            no_unobs (gold standard)
         ]
         default is dsbmm_dpf
         """,
