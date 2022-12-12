@@ -230,8 +230,8 @@ def mask_topics(samp_size, n_cats):
 
 def main():
     num_exps = 20
-    Qs = [4, 8, 16, 32]
-    Ks = [3, 5, 8, 10]
+    Qs = [4, 9, 16]
+    Ks = [3, 5, 8]
     noise = 10.0
     conf_strength = 50.0
     window_len = 3
@@ -372,7 +372,7 @@ def main():
             replicates = 10
             A_predictive_score = 0.0
             YP_pred_score = 0.0
-            for _ in range(replicates):
+            for curr_reps in range(replicates):
                 # now dataset gen, allow randomness again over replicates
                 t = 1000 * time.time()  # current time in milliseconds
                 np.random.seed(int(t) % 2**32)
@@ -414,19 +414,19 @@ def main():
                 if Y_logll_replicated > Y_logll_heldout:
                     YP_pred_score += 1.0
 
-            a_score[exp_idx][k_idx] = A_predictive_score / replicates
-            x_score[exp_idx][k_idx] = YP_pred_score / replicates
-            x_auc[exp_idx][k_idx] = evaluate_random_subset_dpf(
-                past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="logll"
-            )
-            # save results each iteration, so don't lose everything
-            # if something goes wrong
-            with open(outdir / "dsbmm_ppc_results.pkl", "wb") as f:
-                pickle.dump(a_score, f)
-            with open(outdir / "dpf_ppc_results.pkl", "wb") as f:
-                pickle.dump(x_score, f)
-            with open(outdir / "dpf_auc_results.pkl", "wb") as f:
-                pickle.dump(x_auc, f)
+                a_score[exp_idx][k_idx] = A_predictive_score / (curr_reps + 1)
+                x_score[exp_idx][k_idx] = YP_pred_score / (curr_reps + 1)
+                x_auc[exp_idx][k_idx] = evaluate_random_subset_dpf(
+                    past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="logll"
+                )
+                # save results each iteration, so don't lose everything
+                # if something goes wrong
+                with open(outdir / "dsbmm_ppc_results.pkl", "wb") as f:
+                    pickle.dump(a_score, f)
+                with open(outdir / "dpf_ppc_results.pkl", "wb") as f:
+                    pickle.dump(x_score, f)
+                with open(outdir / "dpf_auc_results.pkl", "wb") as f:
+                    pickle.dump(x_auc, f)
 
     print("A ppc scores across choices of num components:", a_score.mean(axis=0))
     print("X ppc scores across choices of num components:", x_score.mean(axis=0))
