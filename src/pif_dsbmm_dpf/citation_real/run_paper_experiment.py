@@ -136,7 +136,7 @@ def main(argv):
                 data_model.full_A_end,
             )
             tqdm.write(f"Loading prev data subset of model w same seed and configs...")
-        except FileNotFoundError:
+        except (FileNotFoundError, AttributeError):
             tqdm.write(
                 f"Previous data subset w given seed and configs not found, creating new data subset..."
             )
