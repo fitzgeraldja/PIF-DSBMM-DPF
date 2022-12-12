@@ -261,9 +261,9 @@ class CitationProcessor:
         with open(os.path.join(self.datapath, "au_pubs.pkl"), "rb") as f:
             self.au_pubs = pickle.load(f)
 
-        self.df_ts = np.unique(self.au_profs.windowed_year.values).astype(int)
+        self.df_ts = np.unique(self.au_pubs.windowed_year.values).astype(int)
         self.uids = {
-            t: self.au_profs.auid_idx[self.au_profs.windowed_year == t].unique()
+            t: self.au_pubs.auid_idx[self.au_pubs.windowed_year == t].unique()
             for t in self.df_ts
         }
 

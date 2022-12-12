@@ -651,8 +651,8 @@ if __name__ == "__main__":
     )
     # this should contain the full dataset in the right form for CitationSimulator
     # -- links in citation_links.npz, arr named "edge_list"
-    # -- author profiles in au_profs.pkl
-    # where files are as described in process_dataset.py
+    # -- author pubs in au_pubs.pkl
+    # where files are as described in process_real.py
     # Should also be subdir, datadir / "dsbmm_data" -- will be created otherwise
     # -- if already have full dataset in DSBMM form, can upload here then
     #    rest should run, and will produce proper data for CitationSimulator
