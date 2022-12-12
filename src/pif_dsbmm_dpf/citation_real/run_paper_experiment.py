@@ -119,7 +119,7 @@ def main(argv):
 
     print("Model:", model)
     print("Variant:", variant)
-    print("Subs:", "old_subs" if use_old_subs else "upd_subs")
+    print("Subs:", "pres" if try_pres_subs else "old_subs")
 
     data_model_path = datadir / f"{data_model_str}.pkl"
 
