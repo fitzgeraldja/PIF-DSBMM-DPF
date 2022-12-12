@@ -572,8 +572,8 @@ def convert_to_dpf_format(
         test_idxs = np.random.choice(
             all_fin_idxs[~np.isin(all_fin_idxs, val_idxs)], size=100, replace=False
         )
-        dpf_val = fin_data[val_idxs]
-        dpf_test = fin_data[test_idxs]
+        dpf_val = fin_data.iloc[val_idxs]
+        dpf_test = fin_data.iloc[test_idxs]
 
     # require that val,test aus + tpcs were present in train set
     dpf_train = dpf_train.astype(int)
