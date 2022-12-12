@@ -48,8 +48,6 @@ def post_process_influence(X, Beta):
 
 def main(argv):
     # TODO:
-    # -- load up real data
-    #    -- coded, just need to put above now
     # -- just set both facs to 20 for now
     # -- init all hat params to zeros
     # -- remove all 'true' data and oracle models
@@ -270,7 +268,7 @@ def main(argv):
             "-dir": str(dpf_subdir),
             "-rfreq": 5,  # check ll every 5 iterations
             "-vprior": 10,  # prior on variance for transitions
-            "-num_threads": 8,  # number of threads to use
+            "-num_threads": 16,  # number of threads to use
             "-tpl": window_len,  # gap between time periods
             # -- assume passing time in years, so this
             # is window length in years
@@ -684,7 +682,7 @@ if __name__ == "__main__":
 
     flags.DEFINE_integer(
         "num_components",
-        16,
+        25,
         """
         number of components to use to fit factor model for
         per-author substitutes, default 16
@@ -692,7 +690,7 @@ if __name__ == "__main__":
     )
     flags.DEFINE_integer(
         "num_exog_components",
-        10,
+        20,
         """
         number of components to use to fit factor model for
         per-topic substitutes, default 10

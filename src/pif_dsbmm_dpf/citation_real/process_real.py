@@ -365,7 +365,7 @@ class CitationProcessor:
             self.Y.append(Y_t)
         # now construct held out testset from final timestep
         # for transductive eval
-        pres_aus = np.flatnonzero(self.Y[-1].sum(axis=1) + self.Y[-1].sum(axis=0))
+        pres_aus = np.flatnonzero(self.Y[-1].sum(axis=1))
         self.test_aus = np.random.choice(
             pres_aus, int(self.test_prop * len(pres_aus)), replace=False
         )
