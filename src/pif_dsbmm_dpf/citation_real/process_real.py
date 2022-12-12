@@ -181,16 +181,6 @@ class CitationProcessor:
 
     def parse_args(self, **kwargs):
         self.random_seed = int(kwargs.get("seed", 42))
-        self.do_sensitivity = bool(kwargs.get("do_sensitivity", False))
-        self.sensitivity_parameter = float(kwargs.get("sensitivity_parameter", 1.0))
-        self.error_rate = float(kwargs.get("error_rate", 0.3))
-        self.rand_cv_mode = kwargs.get("rand_cv_mode", "markov")
-        self.rand_cv_eta = float(kwargs.get("rand_cv_eta", 0.8))
-        self.influence_mode = kwargs.get("influence_mode", "gp")
-        # assume s.d. of change in influence between timesteps is
-        # ~5% of mean influence
-        self.influence_gpvar = float(kwargs.get("influence_gpvar", 0.05))
-        self.influence_gpvar = self.influence_shp * 10 * self.influence_gpvar
         np.random.seed(self.random_seed)
 
     def snowball_sample(self):
