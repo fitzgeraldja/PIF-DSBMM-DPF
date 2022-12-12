@@ -321,13 +321,15 @@ def main():
                 "-n": N,
                 "-m": M,
                 "-dir": str(dpf_subdir),
-                "-rfreq": 5,  # check ll every 5 iterations
+                "-rfreq": 1,  # check ll every iteration -- want to stop asap
                 "-vprior": 10,  # prior on variance for transitions
                 "-num_threads": 64,  # number of threads to use
                 "-tpl": window_len,  # gap between time periods
                 # -- assume passing time in years, so this
                 # is window length in years
-                "-max-iterations": 10,  # max EM iterations
+                "-max-iterations": 10,  # max EM iterations,
+                # though dPF seems to have issues
+                # listening to this...
                 # - 10 usually seems enough
                 # -- NB patience only
                 # 3 checks w/o increase in ll
