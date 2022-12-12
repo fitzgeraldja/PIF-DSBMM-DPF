@@ -231,7 +231,7 @@ def mask_topics(samp_size, n_cats):
 def main():
     num_exps = 20
     Qs = [4, 9, 16]
-    Ks = [3, 5, 8]
+    Ks = [5, 8, 10]
     noise = 10.0
     conf_strength = 50.0
     window_len = 3
