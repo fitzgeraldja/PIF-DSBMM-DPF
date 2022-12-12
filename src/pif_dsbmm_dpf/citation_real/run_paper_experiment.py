@@ -104,9 +104,9 @@ def main(argv):
 
     datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
     if seed is not None:
-        data_model_str = f"seed{seed}"
+        data_model_str = f"real_seed{seed}"
     else:
-        data_model_str = f"{datetime_str}"
+        data_model_str = f"real_{datetime_str}"
 
     window_len = 3  # set window length for dPF
 
