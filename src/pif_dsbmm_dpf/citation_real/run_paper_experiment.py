@@ -147,7 +147,7 @@ def main(argv):
                 save_path=data_model_path,
             )
             try:
-                data_model.process_dataset()
+                Y, Y_heldout, full_A_end = data_model.process_dataset()
             except FileNotFoundError:
                 try:
                     dsbmm_datadir = datadir / "dsbmm_data"
@@ -320,8 +320,10 @@ def main(argv):
             # only run DSBM (no meta)
             try:
                 with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
-                    Z_hat, Z_trans = pickle.load(f)
-                Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat_joint, Z_trans)
+                    Z_hat, Z_trans, block_probs = pickle.load(f)
+                Z_hat, Z_trans, block_probs = utils.clean_dsbmm_res(
+                    Q, Z_hat_joint, Z_trans, block_probs=block_probs
+                )
                 Z_hat, Z_trans = utils.verify_dsbmm_results(Q, Z_hat, Z_trans)
                 tqdm.write("Loaded DSBMM results for given config")
             except (FileNotFoundError, AssertionError):
@@ -331,7 +333,7 @@ def main(argv):
                 tqdm.write(
                     f"using settings h_Q={np.round(np.exp(np.log(Q) / h_l)).astype(int)}, N={dsbmm_data['A'][0].shape[0]}, T-1={len(dsbmm_data['A'])}"
                 )
-                Z_hat, Z_trans = utils.run_dsbmm(
+                Z_hat, Z_trans, block_probs = utils.run_dsbmm(
                     dsbmm_data,
                     dsbmm_datadir,
                     Q,
@@ -339,10 +341,13 @@ def main(argv):
                     datetime_str=dsbmm_res_str,
                     deg_corr=deg_corr,
                     directed=directed,
+                    ret_block_probs=True,
                 )
-                Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
+                Z_hat, Z_trans, block_probs = utils.clean_dsbmm_res(
+                    Q, Z_hat, Z_trans, block_probs=block_probs
+                )
                 with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
-                    pickle.dump((Z_hat, Z_trans), f)
+                    pickle.dump((Z_hat, Z_trans, block_probs), f)
             if Z_hat.shape[1] == T:
                 if try_pres_subs:
                     # use present subs inferred where possible
@@ -408,9 +413,9 @@ def main(argv):
                 # 'z-theta-joint' is DSBMM and dPF combo
                 try:
                     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
-                        Z_hat_joint, Z_trans = pickle.load(f)
-                    Z_hat_joint, Z_trans, _ = utils.clean_dsbmm_res(
-                        Q, Z_hat_joint, Z_trans
+                        Z_hat_joint, Z_trans, block_probs = pickle.load(f)
+                    Z_hat_joint, Z_trans, block_probs = utils.clean_dsbmm_res(
+                        Q, Z_hat_joint, Z_trans, block_probs=block_probs
                     )
                     Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
                         Q, Z_hat_joint, Z_trans
@@ -423,7 +428,7 @@ def main(argv):
                     tqdm.write(
                         f"using settings h_Q={np.round(np.exp(np.log(Q) / h_l)).astype(int)}, N={dsbmm_data['A'][0].shape[0]}, T-1={len(dsbmm_data['A'])}"
                     )
-                    Z_hat_joint, Z_trans = utils.run_dsbmm(
+                    Z_hat_joint, Z_trans, block_probs = utils.run_dsbmm(
                         dsbmm_data,
                         dsbmm_datadir,
                         Q,
@@ -431,9 +436,10 @@ def main(argv):
                         datetime_str=dsbmm_res_str,
                         deg_corr=deg_corr,
                         directed=directed,
+                        ret_block_probs=True,
                     )
                     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
-                        pickle.dump((Z_hat_joint, Z_trans), f)
+                        pickle.dump((Z_hat_joint, Z_trans, block_probs), f)
                 # now run dPF - likewise have set seed so should
                 # be identical between runs
                 try:
@@ -479,13 +485,15 @@ def main(argv):
                 #  'z-theta-concat' is DSBM (no meta) and dPF combo
                 try:
                     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
-                        Z_hat, Z_trans = pickle.load(f)
-                    Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
+                        Z_hat, Z_trans, block_probs = pickle.load(f)
+                    Z_hat, Z_trans, block_probs = utils.clean_dsbmm_res(
+                        Q, Z_hat, Z_trans, block_probs=block_probs
+                    )
                     Z_hat, Z_trans = utils.verify_dsbmm_results(Q, Z_hat, Z_trans)
                     tqdm.write("Loaded DSBM results for given config")
                 except (FileNotFoundError, AssertionError):
                     tqdm.write("Running DSBM (no meta)")
-                    Z_hat, Z_trans = utils.run_dsbmm(
+                    Z_hat, Z_trans, block_probs = utils.run_dsbmm(
                         dsbmm_data,
                         dsbmm_datadir,
                         Q,
@@ -493,10 +501,13 @@ def main(argv):
                         datetime_str=dsbmm_res_str,
                         deg_corr=deg_corr,
                         directed=directed,
+                        ret_block_probs=True,
                     )
-                    Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
+                    Z_hat, Z_trans, block_probs = utils.clean_dsbmm_res(
+                        Q, Z_hat, Z_trans, block_probs=block_probs
+                    )
                     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
-                        pickle.dump((Z_hat, Z_trans), f)
+                        pickle.dump((Z_hat, Z_trans, block_probs), f)
                 try:
                     with open(dpf_results_dir / dpf_res_name, "rb") as f:
                         W_hat, Theta_hat = pickle.load(f)
@@ -518,14 +529,16 @@ def main(argv):
                 # 'z-only' is just DSBM (no meta)
                 try:
                     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
-                        Z_hat, Z_trans = pickle.load(f)
-                    Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
+                        Z_hat, Z_trans, block_probs = pickle.load(f)
+                    Z_hat, Z_trans, block_probs = utils.clean_dsbmm_res(
+                        Q, Z_hat, Z_trans, block_probs=block_probs
+                    )
                     Z_hat, Z_trans = utils.verify_dsbmm_results(Q, Z_hat, Z_trans)
 
                     tqdm.write("Loaded DSBM results for given config")
                 except (FileNotFoundError, AssertionError):
                     tqdm.write("Running DSBM (no meta)")
-                    Z_hat, Z_trans = utils.run_dsbmm(
+                    Z_hat, Z_trans, block_probs = utils.run_dsbmm(
                         dsbmm_data,
                         dsbmm_datadir,
                         Q,
@@ -533,10 +546,13 @@ def main(argv):
                         datetime_str=dsbmm_res_str,
                         deg_corr=deg_corr,
                         directed=directed,
+                        ret_block_probs=True,
                     )
-                    Z_hat, Z_trans, _ = utils.clean_dsbmm_res(Q, Z_hat, Z_trans)
+                    Z_hat, Z_trans, block_probs = utils.clean_dsbmm_res(
+                        Q, Z_hat, Z_trans, block_probs=block_probs
+                    )
                     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
-                        pickle.dump((Z_hat, Z_trans), f)
+                        pickle.dump((Z_hat, Z_trans, block_probs), f)
                 try:
                     with open(dpf_results_dir / dpf_res_name, "rb") as f:
                         W_hat, Theta_hat = pickle.load(f)
