@@ -496,7 +496,7 @@ class CausalInfluenceModel:
             for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1)):
                 print(Y_t.dtype, norm_t.dtype)
                 print(Y_t.shape, norm_t.shape)
-                raise ValueError("problem with normaliser")
+            raise ValueError("problem with normaliser")
         # want (\sum_t) beta_term_{i,t-1} \sum_{j,m} y_{jm}^t a_{ji,t-1} y_{im}^{t-1}
         if self.time_homog:
             expected_aux = self.beta_term * reduce(
