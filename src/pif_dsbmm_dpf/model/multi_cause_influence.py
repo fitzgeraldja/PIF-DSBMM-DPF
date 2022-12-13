@@ -490,7 +490,7 @@ class CausalInfluenceModel:
         try:
             norm_obs = [
                 np.divide(
-                    Y_t.astype(float),
+                    Y_t.toarray(),
                     norm_t,
                     where=norm_t > 0,
                     out=np.zeros(norm_t.shape),
