@@ -202,7 +202,7 @@ def evaluate_random_subset_dpf(heldout_idxs, obs_y, theta, beta, metric="logll")
         for t, h_idx in enumerate(heldout_idxs)
     ]
     expected = [(st * sb).sum(axis=-1).squeeze() for st, sb in zip(subtheta, subbeta)]
-    truth = [obs[h_idx].toarray().squeeze() for h_idx, obs in zip(heldout_idxs, obs_y)]
+    truth = [obs[h_idx].squeeze() for h_idx, obs in zip(heldout_idxs, obs_y)]
     expected = np.concatenate(expected)
     truth = np.concatenate(truth)
 
