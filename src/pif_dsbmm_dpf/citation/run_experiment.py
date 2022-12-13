@@ -186,7 +186,7 @@ def main(argv):
         ):
             outfile = write / ("conf=" + str((noise, confounding)) + ";conf_type=" + ct)
             try:
-                tmp = np.load(outfile)
+                tmp = np.load(str(outfile) + ".npz")
                 tqdm.write("Skipping this config as already done.")
                 continue
             except FileNotFoundError:
