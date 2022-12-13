@@ -94,7 +94,7 @@ def label_propagation(
             )
 
             out_nbr_contrib = np.einsum(
-                "eqr,q->er",
+                "eqr,eq->er",
                 np.exp(
                     poisson.logpmf(1, tmp_lam_outout)
                     + poisson.logpmf(0, tmp_lam_outrecip)
@@ -102,14 +102,14 @@ def label_propagation(
                 full_node_probs[out_nbrs, 1, :],
             )
             in_nbr_contrib = np.einsum(
-                "eqr,q->er",
+                "eqr,eq->er",
                 np.exp(
                     poisson.logpmf(1, tmp_lam_inin) + poisson.logpmf(0, tmp_lam_inrecip)
                 ),
                 full_node_probs[in_nbrs, 1, :],
             )
             recip_contrib = np.einsum(
-                "eqr,q->er",
+                "eqr,eq->er",
                 np.exp(
                     poisson.logpmf(1, tmp_lam_recipin)
                     + poisson.logpmf(1, tmp_lam_recipout)
@@ -125,19 +125,19 @@ def label_propagation(
             tmp_lam_recipout = block_probs
 
             out_nbr_contrib = np.einsum(
-                "eqr,q->er",
+                "eqr,eq->er",
                 np.tile(tmp_lam_outout, (len(out_nbrs), 1, 1))
                 * np.tile(1 - tmp_lam_outrecip, (len(out_nbrs), 1, 1)),
                 full_node_probs[out_nbrs, 1, :],
             )
             in_nbr_contrib = np.einsum(
-                "eqr,q->er",
+                "eqr,eq->er",
                 np.tile(tmp_lam_inin, (len(in_nbrs), 1, 1))
                 * np.tile(1 - tmp_lam_inrecip, (len(in_nbrs), 1, 1)),
                 full_node_probs[in_nbrs, 1, :],
             )
             recip_contrib = np.einsum(
-                "eqr,q->er",
+                "eqr,eq->er",
                 np.tile(tmp_lam_recipin, (len(recip), 1, 1))
                 * np.tile(tmp_lam_recipout, (len(recip), 1, 1)),
                 full_node_probs[recip, 1, :],
