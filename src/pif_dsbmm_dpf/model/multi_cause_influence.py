@@ -294,11 +294,11 @@ class CausalInfluenceModel:
                 ) + np.einsum("itk,mtk->imt", self.alpha_term, W)
 
         self.normaliser = preference_component + influence_component
-        if np.isnan(self.normaliser).any():
-            print(np.isnan(self.normaliser).sum())
-            print(np.isnan(Z).sum())
-            print(np.isnan(W).sum())
-            raise ValueError("nans in normaliser")
+        # if np.isnan(self.normaliser).any():
+        #     print(np.isnan(self.normaliser).sum())
+        #     print(np.isnan(Z).sum())
+        #     print(np.isnan(W).sum())
+        #     raise ValueError("nans in normaliser")
 
     ##for now, this will simply return log likelihood under the Poisson model for Y
     def _compute_elbo(self, Y, A, Y_past, Z, W, Z_trans=None, use_old_subs=True):
@@ -503,6 +503,7 @@ class CausalInfluenceModel:
             for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1)):
                 print(Y_t.dtype, norm_t.dtype)
                 print(Y_t.shape, norm_t.shape)
+                Y_t / norm_t
             raise ValueError("problem with normaliser")
         # want (\sum_t) beta_term_{i,t-1} \sum_{j,m} y_{jm}^t a_{ji,t-1} y_{im}^{t-1}
         if self.time_homog:
