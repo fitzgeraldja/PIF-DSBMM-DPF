@@ -75,6 +75,8 @@ def main(argv):
     outdir.mkdir(exist_ok=True)
     model = FLAGS.model
     variant = FLAGS.variant
+    if "dsbmm_dpf" not in model:
+        variant = "main"
 
     # if not os.path.exists(outdir):
     # 	os.makedirs(outdir)
