@@ -185,8 +185,8 @@ class CausalInfluenceModel:
 
     def _compute_expectations(self, shp, rte):
         return special.psi(shp) - np.log(
-            rte, where=rte > 0, out=np.zeros(rte.shape)
-        ), np.divide(shp, rte, where=rte > 0, out=np.zeros(rte.shape))
+            rte, where=rte > 0, out=np.zeros(shp.shape)
+        ), np.divide(shp, rte, where=rte > 0, out=np.zeros(shp.shape))
 
     def _compute_terms_and_normalizers(
         self, A, Y_past, Y, Z, W, Z_trans=None, use_old_subs=True
