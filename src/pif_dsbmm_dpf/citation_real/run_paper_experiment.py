@@ -177,9 +177,10 @@ def main(argv):
     outfile = write / "all_params.npz"
     try:
         tmp = np.load(outfile)
+        assert not np.isnan(tmp["Beta_hat"]).any()
         tqdm.write("Skipping this config as already done.")
         return
-    except FileNotFoundError:
+    except (FileNotFoundError, AssertionError):
         tqdm.write("Starting procedure...")
 
     sys.stdout.flush()
