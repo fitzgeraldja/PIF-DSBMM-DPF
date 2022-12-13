@@ -35,8 +35,10 @@ def label_propagation(
     alpha = old_node_probs.mean(axis=(0, 1))
     Q = old_node_probs.shape[-1]
     full_node_probs = np.zeros((full_A.shape[0], 2, Q))
-    full_node_probs[old_au_idxs[0], 0, :] = old_node_probs[:, -2, :]
-    full_node_probs[old_au_idxs[1], 1, :] = old_node_probs[:, -1, :]
+    # NB assuming not adding any new nodes, just new data (i.e. arrays
+    # are same size)
+    full_node_probs[old_au_idxs[0], 0, :] = old_node_probs[old_au_idxs[0], -2, :]
+    full_node_probs[old_au_idxs[1], 1, :] = old_node_probs[old_au_idxs[1], -1, :]
     sub_A_out = full_A[new_au_idxs, :][:, old_au_idxs[1]]
     sub_A_in = full_A[old_au_idxs[1], :][:, new_au_idxs]
     new_d_out = np.sum(sub_A_out, axis=1)
