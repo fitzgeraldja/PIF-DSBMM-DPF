@@ -419,7 +419,9 @@ class CausalInfluenceModel:
 
     def _update_gamma(self, Y, Z):
         norm_obs = [
-            np.divide(Y_t, norm_t, where=norm_t > 0, out=np.zeros(norm_t.shape))
+            np.divide(
+                Y_t.astype(float), norm_t, where=norm_t > 0, out=np.zeros(norm_t.shape)
+            )
             for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
         ]
         # want (\sum_t) \sum_i gamma_term_{mtq} z_{itq} y_{im}^t
@@ -449,7 +451,9 @@ class CausalInfluenceModel:
 
     def _update_alpha(self, Y, W):
         norm_obs = [
-            np.divide(Y_t, norm_t, where=norm_t > 0, out=np.zeros(norm_t.shape))
+            np.divide(
+                Y_t.astype(float), norm_t, where=norm_t > 0, out=np.zeros(norm_t.shape)
+            )
             for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
         ]
         # want (\sum_t) \sum_m alpha_term_{itq} w_{mtq} y_{im}^t
@@ -480,7 +484,12 @@ class CausalInfluenceModel:
     def _update_beta(self, Y, Y_past, A):
         try:
             norm_obs = [
-                np.divide(Y_t, norm_t, where=norm_t > 0, out=np.zeros(norm_t.shape))
+                np.divide(
+                    Y_t.astype(float),
+                    norm_t,
+                    where=norm_t > 0,
+                    out=np.zeros(norm_t.shape),
+                )
                 for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
             ]
         except:
