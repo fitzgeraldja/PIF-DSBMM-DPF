@@ -58,8 +58,12 @@ def label_propagation(
         prev_contrib = np.log(
             prev_contrib, out=np.zeros_like(prev_contrib), where=prev_contrib != 0
         )
-        out_nbrs = full_A[new_au_idx, :].flatnonzero()  # new node sends to
-        in_nbrs = full_A[:, new_au_idx].flatnonzero()  # send to new node
+        out_nbrs = np.flatnonzero(
+            full_A.getrow(new_au_idx).toarray().squeeze()
+        )  # new node sends to
+        in_nbrs = np.flatnonzero(
+            full_A.getcol(new_au_idx).toarray().squeeze()
+        )  # send to new node
         recip = np.intersect1d(out_nbrs, in_nbrs)  # reciprocated
         out_nbrs = np.setdiff1d(out_nbrs, recip)  # now only receive from new node
         in_nbrs = np.setdiff1d(in_nbrs, recip)  # now only send to new node
