@@ -493,6 +493,8 @@ class CausalInfluenceModel:
                 for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
             ]
         except:
+            print(len(Y))
+            print(len(self.normaliser.transpose(2, 0, 1)))
             for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1)):
                 print(Y_t.dtype, norm_t.dtype)
                 print(Y_t.shape, norm_t.shape)
