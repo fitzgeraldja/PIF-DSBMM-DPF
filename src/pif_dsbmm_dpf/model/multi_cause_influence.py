@@ -184,7 +184,9 @@ class CausalInfluenceModel:
             )
 
     def _compute_expectations(self, shp, rte):
-        return special.psi(shp) - np.log(rte), shp / rte
+        return special.psi(shp) - np.log(
+            rte, where=rte > 0, out=np.zeros(rte.shape)
+        ), np.divide(shp, rte, where=rte > 0, out=np.zeros(rte.shape))
 
     def _compute_terms_and_normalizers(
         self, A, Y_past, Y, Z, W, Z_trans=None, use_old_subs=True
@@ -417,7 +419,8 @@ class CausalInfluenceModel:
 
     def _update_gamma(self, Y, Z):
         norm_obs = [
-            Y_t / norm_t for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
+            np.divide(Y_t, norm_t, where=norm_t > 0, out=np.zeros(norm_t.shape))
+            for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
         ]
         # want (\sum_t) \sum_i gamma_term_{mtq} z_{itq} y_{im}^t
         if self.time_homog:
@@ -446,7 +449,8 @@ class CausalInfluenceModel:
 
     def _update_alpha(self, Y, W):
         norm_obs = [
-            Y_t / norm_t for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
+            np.divide(Y_t, norm_t, where=norm_t > 0, out=np.zeros(norm_t.shape))
+            for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
         ]
         # want (\sum_t) \sum_m alpha_term_{itq} w_{mtq} y_{im}^t
         if self.time_homog:
@@ -475,7 +479,8 @@ class CausalInfluenceModel:
 
     def _update_beta(self, Y, Y_past, A):
         norm_obs = [
-            Y_t / norm_t for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
+            np.divide(Y_t, norm_t, where=norm_t > 0, out=np.zeros(norm_t.shape))
+            for Y_t, norm_t in zip(Y, self.normaliser.transpose(2, 0, 1))
         ]
         # want (\sum_t) beta_term_{i,t-1} \sum_{j,m} y_{jm}^t a_{ji,t-1} y_{im}^{t-1}
         if self.time_homog:
@@ -567,6 +572,8 @@ class CausalInfluenceModel:
             if (bd - old_bd) / abs(old_bd) < self.tol:
                 print(old_bd, bd)
                 break
+            elif np.isnan(bd):
+                raise ValueError("ELBO is NaN")
 
 
 def get_set_overlap(Beta_p, Beta, k=20):
