@@ -370,18 +370,25 @@ def main():
                     remove_final=True,
                     save_path=dsbmm_datadir / f"{sim_model_path.stem}_dsbmm_data.pkl",
                 )
-
-            replicates = 10
-            A_predictive_score = 0.0
-            YP_pred_score = 0.0
-            for curr_reps in range(replicates):
-                # now dataset gen, allow randomness again over replicates
-                t = 1000 * time.time()  # current time in milliseconds
-                np.random.seed(int(t) % 2**32)
-                datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
-                dsbmm_res_str = f"{sim_model_path.stem}_{datetime_str}"
+            # datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
+            # dsbmm_res_str = f"{sim_model_path.stem}_{datetime_str}"
+            dsbmm_res_str = f"dsbmmppc_run{sim_model_path.stem}_Q{Q}"
+            dpf_res_name = f"dpfppc_run{sim_model_path.stem}_K{K}.pkl"
+            try:
+                with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
+                    Z_hat_joint, Z_trans, block_probs = pickle.load(f)
+                Z_hat_joint, Z_trans, block_probs = utils.clean_dsbmm_res(
+                    Q, Z_hat_joint, Z_trans, block_probs=block_probs
+                )
+                Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
+                    Q, Z_hat_joint, Z_trans
+                )
+                tqdm.write("Loaded DSBMM results for given config")
+            except (FileNotFoundError, AssertionError):
+                # only run if not already done
                 tqdm.write("Running DSBMM")
-                Z_hat_joint, _, block_probs = utils.run_dsbmm(
+
+                Z_hat_joint, Z_trans, block_probs = utils.run_dsbmm(
                     dsbmm_data,
                     dsbmm_datadir,
                     Q,
@@ -391,7 +398,15 @@ def main():
                     directed=True,
                     ret_block_probs=True,
                 )
+                with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
+                    pickle.dump((Z_hat_joint, Z_trans, block_probs), f)
 
+            try:
+                with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                    W_hat, Theta_hat = pickle.load(f)
+                assert W_hat.shape[-1] == K
+                tqdm.write("Loaded dPF results for given config")
+            except (FileNotFoundError, AssertionError):
                 tqdm.write("Running dPF")
                 W_hat, Theta_hat = utils.run_dpf(
                     dpf_repo_dir,
@@ -401,6 +416,16 @@ def main():
                     true_N=N,
                     true_M=M,
                 )
+                with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                    pickle.dump((W_hat, Theta_hat), f)
+
+            replicates = 100
+            A_predictive_score = 0.0
+            YP_pred_score = 0.0
+            for curr_reps in range(replicates):
+                # now dataset gen, allow randomness again over replicates
+                t = 1000 * time.time()  # current time in milliseconds
+                np.random.seed(int(t) % 2**32)
 
                 A_logll_heldout, A_logll_replicated = calculate_ppc_dsbmm(
                     masked_friends,
@@ -416,19 +441,19 @@ def main():
                 if Y_logll_replicated > Y_logll_heldout:
                     YP_pred_score += 1.0
 
-                a_score[exp_idx][k_idx] = A_predictive_score / (curr_reps + 1)
-                x_score[exp_idx][k_idx] = YP_pred_score / (curr_reps + 1)
-                x_auc[exp_idx][k_idx] = evaluate_random_subset_dpf(
-                    past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="auc"
-                )
-                # save results each iteration, so don't lose everything
-                # if something goes wrong
-                with open(outdir / "dsbmm_ppc_results.pkl", "wb") as f:
-                    pickle.dump(a_score, f)
-                with open(outdir / "dpf_ppc_results.pkl", "wb") as f:
-                    pickle.dump(x_score, f)
-                with open(outdir / "dpf_auc_results.pkl", "wb") as f:
-                    pickle.dump(x_auc, f)
+            a_score[exp_idx][k_idx] = A_predictive_score / replicates
+            x_score[exp_idx][k_idx] = YP_pred_score / replicates
+            x_auc[exp_idx][k_idx] = evaluate_random_subset_dpf(
+                past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="auc"
+            )
+            # save results each iteration, so don't lose everything
+            # if something goes wrong
+            with open(outdir / "dsbmm_ppc_results.pkl", "wb") as f:
+                pickle.dump(a_score, f)
+            with open(outdir / "dpf_ppc_results.pkl", "wb") as f:
+                pickle.dump(x_score, f)
+            with open(outdir / "dpf_auc_results.pkl", "wb") as f:
+                pickle.dump(x_auc, f)
 
     print("A ppc scores across choices of num components:", a_score.mean(axis=0))
     print("X ppc scores across choices of num components:", x_score.mean(axis=0))
