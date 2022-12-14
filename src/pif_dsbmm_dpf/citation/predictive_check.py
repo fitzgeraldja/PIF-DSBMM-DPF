@@ -419,7 +419,7 @@ def main():
                 a_score[exp_idx][k_idx] = A_predictive_score / (curr_reps + 1)
                 x_score[exp_idx][k_idx] = YP_pred_score / (curr_reps + 1)
                 x_auc[exp_idx][k_idx] = evaluate_random_subset_dpf(
-                    past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="logll"
+                    past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="auc"
                 )
                 # save results each iteration, so don't lose everything
                 # if something goes wrong
