@@ -205,9 +205,10 @@ def evaluate_random_subset_dpf(heldout_idxs, obs_y, theta, beta, metric="logll")
     truth = [obs[h_idx].squeeze() for h_idx, obs in zip(heldout_idxs, obs_y)]
     expected = np.concatenate(expected)
     truth = np.concatenate(truth)
+    truth = (truth > 0).astype(int)  # binarise
 
     if metric == "auc":
-        return roc_auc_score(truth, expected)
+        return roc_auc_score(truth.flatten(), expected.flatten())
     else:
         return poisson.logpmf(truth, expected).sum()
 
