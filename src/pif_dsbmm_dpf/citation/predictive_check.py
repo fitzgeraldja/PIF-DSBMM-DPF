@@ -111,6 +111,24 @@ def calculate_ppc_dsbmm(
     :return: logll_heldout, logll_replicated
     :rtype: tuple(float, float)
     """
+    if node_probs.shape[0] != heldout_idxs[0][0].shape[0]:
+        tqdm.write(f"Warning: z_hat shape doesn't match N")
+        diff = node_probs.shape[0] - heldout_idxs[0][0].shape[0]
+        if diff > 0:
+            prop_diff = diff / heldout_idxs[0][0].shape[0].shape[0]
+            if prop_diff < 2e-2:
+                tqdm.write(
+                    f"prop diff is only {prop_diff:.2e}, so probably ok: will add random"
+                )
+                node_probs = np.pad(
+                    node_probs, ((0, diff), (0, 0), (0, 0)), mode="constant"
+                )
+                node_probs[-diff:, :, :] = np.random.rand(
+                    diff, node_probs.shape[1], node_probs.shape[2]
+                )
+                node_probs[-diff:] /= node_probs[-diff:].sum(axis=-1, keepdims=True)
+        else:
+            raise ValueError(f"z_hat shape doesn't match N (diff is {diff})")
 
     heldout = [obs[idxs] for obs, idxs in zip(obs_a, heldout_idxs)]
     i_idxs = [idxs[0] for idxs in heldout_idxs]
