@@ -527,38 +527,38 @@ def main(argv):
                 elif model == "dsbmm_dpf":
                     if variant == "z-theta-joint":
                         # 'z-theta-joint' is DSBMM and dPF combo
-                        try:
-                            with open(
-                                dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
-                            ) as f:
-                                Z_hat_joint, Z_trans = pickle.load(f)
-                            Z_hat_joint, Z_trans, _ = utils.clean_dsbmm_res(
-                                Q, Z_hat_joint, Z_trans
-                            )
-                            Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
-                                Q, Z_hat_joint, Z_trans
-                            )
-                            tqdm.write("Loaded DSBMM results for given config")
-                        except (FileNotFoundError, AssertionError):
-                            # only run if not already done
-                            tqdm.write("Running DSBMM")
-                            h_l = 2
-                            tqdm.write(
-                                f"using settings h_Q={np.round(np.exp(np.log(Q) / h_l)).astype(int)}, N={dsbmm_data['A'][0].shape[0]}, T-1={len(dsbmm_data['A'])}"
-                            )
-                            Z_hat_joint, Z_trans = utils.run_dsbmm(
-                                dsbmm_data,
-                                dsbmm_datadir,
-                                Q,
-                                ignore_meta=False,
-                                datetime_str=dsbmm_res_str,
-                                deg_corr=deg_corr,
-                                directed=directed,
-                            )
-                            with open(
-                                dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
-                            ) as f:
-                                pickle.dump((Z_hat_joint, Z_trans), f)
+                        # try:
+                        #     with open(
+                        #         dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb"
+                        #     ) as f:
+                        #         Z_hat_joint, Z_trans = pickle.load(f)
+                        #     Z_hat_joint, Z_trans, _ = utils.clean_dsbmm_res(
+                        #         Q, Z_hat_joint, Z_trans
+                        #     )
+                        #     Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
+                        #         Q, Z_hat_joint, Z_trans
+                        #     )
+                        #     tqdm.write("Loaded DSBMM results for given config")
+                        # except (FileNotFoundError, AssertionError):
+                        # only run if not already done
+                        tqdm.write("Running DSBMM")
+                        h_l = 2
+                        tqdm.write(
+                            f"using settings h_Q={np.round(np.exp(np.log(Q) / h_l)).astype(int)}, N={dsbmm_data['A'][0].shape[0]}, T-1={len(dsbmm_data['A'])}"
+                        )
+                        Z_hat_joint, Z_trans = utils.run_dsbmm(
+                            dsbmm_data,
+                            dsbmm_datadir,
+                            Q,
+                            ignore_meta=False,
+                            datetime_str=dsbmm_res_str,
+                            deg_corr=deg_corr,
+                            directed=directed,
+                        )
+                        with open(
+                            dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb"
+                        ) as f:
+                            pickle.dump((Z_hat_joint, Z_trans), f)
                         # now run dPF - likewise have set seed so should
                         # be identical between runs
                         try:
