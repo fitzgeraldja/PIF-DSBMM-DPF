@@ -17,7 +17,7 @@ from pif_dsbmm_dpf.citation import utils
 from pif_dsbmm_dpf.citation.process_dataset import CitationSimulator
 
 
-def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta):
+def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta, overall=False):
     r"""Compute the predictive probability of the heldout topics.
     Should be applied separately for network confounder and
     topic confounder models -- the likelihood of each are
@@ -42,6 +42,9 @@ def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta):
     :type theta: np.ndarray
     :param beta: topic factors inferred by dPF, shape (M,T,K)
     :type beta: np.ndarray
+    :param overall: use overall version, i.e. don't return calc at each timestep,
+                    defaults to False
+    :type overall: bool, optional
     :return: logll_heldout, logll_replicated
     :rtype: tuple(float, float)
     """
@@ -62,12 +65,16 @@ def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta):
     rates = [(st * sb).sum(axis=-1) for st, sb in zip(subtheta, subbeta)]
     replicated = [poisson.rvs(rate) for rate in rates]
     heldout = [obs[h_idx] for h_idx, obs in zip(heldout_idxs, obs_y)]
-    logll_heldout = np.sum(
-        [poisson.logpmf(ho, rate).sum() for ho, rate in zip(heldout, rates)]
-    )
-    logll_replicated = np.sum(
-        [poisson.logpmf(rep, rate).sum() for rep, rate in zip(replicated, rates)]
-    )
+    logll_heldout = [poisson.logpmf(ho, rate).sum() for ho, rate in zip(heldout, rates)]
+    logll_replicated = [
+        poisson.logpmf(rep, rate).sum() for rep, rate in zip(replicated, rates)
+    ]
+    if overall:
+        logll_heldout = np.sum(logll_heldout)
+        logll_replicated = np.sum(logll_replicated)
+    else:
+        logll_heldout = np.array(logll_heldout)
+        logll_replicated = np.array(logll_replicated)
     return logll_heldout, logll_replicated
 
 
@@ -78,6 +85,7 @@ def calculate_ppc_dsbmm(
     block_probs: np.ndarray,
     deg_corr=True,
     directed=False,
+    overall=False,
 ):
     """Compute the predictive probability of the heldout edges.
     This func is for au-topic substitute -- the DSBMM.
@@ -97,6 +105,9 @@ def calculate_ppc_dsbmm(
     :type deg_corr: bool, optional
     :param directed: use directed version, defaults to False
     :type directed: bool, optional
+    :param overall: use overall version, i.e. don't return calc at each timestep,
+                    defaults to False
+    :type overall: bool, optional
     :return: logll_heldout, logll_replicated
     :rtype: tuple(float, float)
     """
@@ -152,30 +163,36 @@ def calculate_ppc_dsbmm(
         ]
     if deg_corr:
         replicated = [poisson.rvs(er) for er in e_rates]
-        logll_heldout = np.sum(
-            [
-                poisson.logpmf(ho.astype(int), er).sum()
-                for ho, er in zip(heldout, e_rates)
-            ]
-        )
-        logll_replicated = np.sum(
-            [poisson.logpmf(rep, er).sum() for rep, er in zip(replicated, e_rates)]
-        )
+        logll_heldout = [
+            poisson.logpmf(ho.astype(int), er).sum() for ho, er in zip(heldout, e_rates)
+        ]
+        logll_replicated = [
+            poisson.logpmf(rep, er).sum() for rep, er in zip(replicated, e_rates)
+        ]
+
     else:
         replicated = [bernoulli.rvs(ep) for ep in e_probs]
-        logll_heldout = np.sum(
-            [
-                bernoulli.logpmf((ho > 0).astype(int), ep).sum()
-                for ho, ep in zip(heldout, e_probs)
-            ]
-        )
-        logll_replicated = np.sum(
-            [bernoulli.logpmf(rep, ep).sum() for rep, ep in zip(replicated, e_probs)]
-        )
+        logll_heldout = [
+            bernoulli.logpmf((ho > 0).astype(int), ep).sum()
+            for ho, ep in zip(heldout, e_probs)
+        ]
+
+        logll_replicated = [
+            bernoulli.logpmf(rep, ep).sum() for rep, ep in zip(replicated, e_probs)
+        ]
+    if overall:
+        logll_heldout = np.sum(logll_heldout)
+        logll_replicated = np.sum(logll_replicated)
+    else:
+        logll_heldout = np.array(logll_heldout)
+        logll_replicated = np.array(logll_replicated)
+
     return logll_heldout, logll_replicated
 
 
-def evaluate_random_subset_dpf(heldout_idxs, obs_y, theta, beta, metric="logll"):
+def evaluate_random_subset_dpf(
+    heldout_idxs, obs_y, theta, beta, overall=False, metric="logll"
+):
     """Only calc AUC for dPF, and on same heldout au-topic pairs as
     before so might as well just pass expected values in, but leave this
     for generality
@@ -189,6 +206,9 @@ def evaluate_random_subset_dpf(heldout_idxs, obs_y, theta, beta, metric="logll")
     :type theta: np.ndarray
     :param beta: topic factors inferred by dPF, shape (M,T,K)
     :type beta: np.ndarray
+    :param overall: use overall version, i.e. don't return calc at each timestep,
+                    defaults to False
+    :type overall: bool, optional
     :return: score
     :rtype: float
     """
@@ -203,14 +223,29 @@ def evaluate_random_subset_dpf(heldout_idxs, obs_y, theta, beta, metric="logll")
     ]
     expected = [(st * sb).sum(axis=-1).squeeze() for st, sb in zip(subtheta, subbeta)]
     truth = [obs[h_idx].squeeze() for h_idx, obs in zip(heldout_idxs, obs_y)]
-    expected = np.concatenate(expected)
-    truth = np.concatenate(truth)
-    truth = (truth > 0).astype(int)  # binarise
+    if overall:
+        expected = np.concatenate(expected)
+        truth = np.concatenate(truth)
+        truth = (truth > 0).astype(int)  # binarise
 
-    if metric == "auc":
-        return roc_auc_score(truth.flatten(), expected.flatten())
+        if metric == "auc":
+            return roc_auc_score(truth.flatten(), expected.flatten())
+        else:
+            return poisson.logpmf(truth, expected).sum()
     else:
-        return poisson.logpmf(truth, expected).sum()
+        truth = [(tru > 0).astype(int) for tru in truth]  # binarise
+
+        if metric == "auc":
+            return np.array(
+                [
+                    roc_auc_score(tru.flatten(), exp.flatten())
+                    for tru, exp in zip(truth, expected)
+                ]
+            )
+        else:
+            return np.array(
+                [poisson.logpmf(tru, exp).sum() for tru, exp in zip(truth, expected)]
+            )
 
 
 def mask_topics(samp_size, n_cats):
@@ -237,9 +272,10 @@ def main():
     conf_strength = 50.0
     window_len = 3
 
-    a_score = np.zeros((num_exps, len(Ks)))
-    x_score = np.zeros((num_exps, len(Ks)))
-    x_auc = np.zeros((num_exps, len(Ks)))
+    T = 5
+    a_score = np.zeros((num_exps, len(Ks), T - 1))
+    x_score = np.zeros((num_exps, len(Ks), T - 1))
+    x_auc = np.zeros((num_exps, len(Ks), T - 1))
     # for ct in tqdm(confounding_type, desc="Confounding type", position=0):
     #     for (noise, confounding) in tqdm(
     #         confounding_configs, desc="Confounding configs", position=1, leave=False
@@ -291,6 +327,8 @@ def main():
         masked_friends = [mask_topics(N, N) for _ in range(T - 1)]
         past_masked_topics = [mask_topics(N, M) for _ in range(T - 1)]
         aus = np.arange(N, dtype=int)
+        # NB mask_topics returns a 1D array of indices to mask,
+        # so must pair with aus to get the right shape
         masked_friends = [(aus.copy(), mf) for mf in masked_friends]
         past_masked_topics = [(aus.copy(), pmt) for pmt in past_masked_topics]
 
@@ -311,8 +349,9 @@ def main():
                 dpf_datadir,
                 simulation_model.aus,
                 sim_id=sim_model_path.stem,
-                sim_tpcs=Y,
+                sim_tpcs=Y_past_train,
                 window_len=window_len,
+                split_test=False,
             )
 
             dpf_results_dir = datadir / "dpf_results"
@@ -366,64 +405,65 @@ def main():
                     all_dsbmm_data,
                     simulation_model.aus,
                     T,
-                    sim_tpcs=Y,
+                    sim_tpcs=Y_past_train,
                     meta_choices=["tpc_"],
-                    remove_final=True,
+                    remove_final=False,
                     save_path=dsbmm_datadir / f"{sim_model_path.stem}_dsbmm_data.pkl",
                 )
+                dsbmm_data["A"] = A_train
             # datetime_str = time.strftime("%d-%m_%H-%M", time.gmtime(time.time()))
             # dsbmm_res_str = f"{sim_model_path.stem}_{datetime_str}"
             dsbmm_res_str = f"dsbmmppc_run{sim_model_path.stem}_Q{Q}"
             dpf_res_name = f"dpfppc_run{sim_model_path.stem}_K{K}.pkl"
-            try:
-                with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
-                    Z_hat_joint, Z_trans, block_probs = pickle.load(f)
-                Z_hat_joint, Z_trans, block_probs = utils.clean_dsbmm_res(
-                    Q, Z_hat_joint, Z_trans, block_probs=block_probs
-                )
-                Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
-                    Q, Z_hat_joint, Z_trans
-                )
-                tqdm.write("Loaded DSBMM results for given config")
-            except (FileNotFoundError, AssertionError):
-                # only run if not already done
-                tqdm.write("Running DSBMM")
+            # try:
+            #     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
+            #         Z_hat_joint, Z_trans, block_probs = pickle.load(f)
+            #     Z_hat_joint, Z_trans, block_probs = utils.clean_dsbmm_res(
+            #         Q, Z_hat_joint, Z_trans, block_probs=block_probs
+            #     )
+            #     Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
+            #         Q, Z_hat_joint, Z_trans
+            #     )
+            #     tqdm.write("Loaded DSBMM results for given config")
+            # except (FileNotFoundError, AssertionError):
+            # only run if not already done
+            tqdm.write("Running DSBMM")
 
-                Z_hat_joint, Z_trans, block_probs = utils.run_dsbmm(
-                    dsbmm_data,
-                    dsbmm_datadir,
-                    Q,
-                    ignore_meta=False,
-                    datetime_str=dsbmm_res_str,
-                    deg_corr=True,
-                    directed=True,
-                    ret_block_probs=True,
-                )
-                with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
-                    pickle.dump((Z_hat_joint, Z_trans, block_probs), f)
+            Z_hat_joint, Z_trans, block_probs = utils.run_dsbmm(
+                dsbmm_data,
+                dsbmm_datadir,
+                Q,
+                ignore_meta=False,
+                datetime_str=dsbmm_res_str,
+                deg_corr=True,
+                directed=True,
+                ret_block_probs=True,
+            )
+            with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
+                pickle.dump((Z_hat_joint, Z_trans, block_probs), f)
 
-            try:
-                with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                    W_hat, Theta_hat = pickle.load(f)
-                assert W_hat.shape[-1] == K
-                tqdm.write("Loaded dPF results for given config")
-            except (FileNotFoundError, AssertionError):
-                tqdm.write("Running dPF")
-                W_hat, Theta_hat = utils.run_dpf(
-                    dpf_repo_dir,
-                    dpf_results_dir,
-                    dpf_settings,
-                    idx_map_dir=dpf_subdir,
-                    true_N=N,
-                    true_M=M,
-                )
-                with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                    pickle.dump((W_hat, Theta_hat), f)
+            # try:
+            #     with open(dpf_results_dir / dpf_res_name, "rb") as f:
+            #         W_hat, Theta_hat = pickle.load(f)
+            #     assert W_hat.shape[-1] == K
+            #     tqdm.write("Loaded dPF results for given config")
+            # except (FileNotFoundError, AssertionError):
+            tqdm.write("Running dPF")
+            W_hat, Theta_hat = utils.run_dpf(
+                dpf_repo_dir,
+                dpf_results_dir,
+                dpf_settings,
+                idx_map_dir=dpf_subdir,
+                true_N=N,
+                true_M=M,
+            )
+            with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                pickle.dump((W_hat, Theta_hat), f)
 
             replicates = 100
-            A_predictive_score = 0.0
-            YP_pred_score = 0.0
-            for curr_reps in range(replicates):
+            A_predictive_score = np.zeros(T - 1)
+            YP_pred_score = np.zeros(T - 1)
+            for _ in range(replicates):
                 # now dataset gen, allow randomness again over replicates
                 t = 1000 * time.time()  # current time in milliseconds
                 np.random.seed(int(t) % 2**32)
@@ -437,10 +477,8 @@ def main():
                 Y_logll_heldout, Y_logll_replicated = calculate_ppc_dpf(
                     past_masked_topics, Y[:-1], Theta_hat, W_hat
                 )
-                if A_logll_replicated > A_logll_heldout:
-                    A_predictive_score += 1.0
-                if Y_logll_replicated > Y_logll_heldout:
-                    YP_pred_score += 1.0
+                A_predictive_score[A_logll_replicated > A_logll_heldout] += 1.0
+                YP_pred_score[Y_logll_replicated > Y_logll_heldout] += 1.0
 
             a_score[exp_idx][k_idx] = A_predictive_score / replicates
             x_score[exp_idx][k_idx] = YP_pred_score / replicates
