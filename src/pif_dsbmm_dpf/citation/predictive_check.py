@@ -84,8 +84,9 @@ def calculate_ppc_dsbmm(
     node_probs: np.ndarray,
     block_probs: np.ndarray,
     deg_corr=True,
-    directed=False,
+    directed=True,
     overall=False,
+    ret_rates=False,
 ):
     """Compute the predictive probability of the heldout edges.
     This func is for au-topic substitute -- the DSBMM.
@@ -103,11 +104,13 @@ def calculate_ppc_dsbmm(
     :type block_probs: np.ndarray
     :param deg_corr: use degree corrected version, defaults to True
     :type deg_corr: bool, optional
-    :param directed: use directed version, defaults to False
+    :param directed: use directed version, defaults to True
     :type directed: bool, optional
     :param overall: use overall version, i.e. don't return calc at each timestep,
                     defaults to False
     :type overall: bool, optional
+    :param ret_rates: return rates used to calc logpmf, defaults to False
+    :type ret_rates: bool, optional
     :return: logll_heldout, logll_replicated
     :rtype: tuple(float, float)
     """
@@ -204,8 +207,13 @@ def calculate_ppc_dsbmm(
     else:
         logll_heldout = np.array(logll_heldout)
         logll_replicated = np.array(logll_replicated)
-
-    return logll_heldout, logll_replicated
+    if not ret_rates:
+        return logll_heldout, logll_replicated
+    else:
+        if deg_corr:
+            return logll_heldout, logll_replicated, e_rates
+        else:
+            return logll_heldout, logll_replicated, e_probs
 
 
 def evaluate_random_subset_dpf(
