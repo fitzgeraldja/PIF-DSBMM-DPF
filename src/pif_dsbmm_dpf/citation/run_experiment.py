@@ -355,12 +355,12 @@ def main(argv):
                 # as saves in working directory
                 # pass location of dpf code
                 if "-ndc" in variant:
-                    variant.replace("-ndc", "")
+                    variant = variant.replace("-ndc", "")
                     deg_corr = False
                 else:
                     deg_corr = True
                 if "-undir" in variant:
-                    variant.replace("-undir", "")
+                    variant = variant.replace("-undir", "")
                     directed = False
                 else:
                     directed = True
