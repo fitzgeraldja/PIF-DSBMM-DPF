@@ -316,6 +316,7 @@ def main():
         try:
             with open(sim_model_path, "rb") as f:
                 simulation_model: CitationSimulator = pickle.load(f)
+            np.random.seed(exp_idx)  # need to set explicitly if don't gen in run
             tqdm.write(f"Loading prev sim of model w same seed and configs...")
         except FileNotFoundError:
             tqdm.write(
