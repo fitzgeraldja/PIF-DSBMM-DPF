@@ -446,50 +446,50 @@ def main():
             # dsbmm_res_str = f"{sim_model_path.stem}_{datetime_str}"
             dsbmm_res_str = f"dsbmmppc_run{sim_model_path.stem}_Q{Q}"
             dpf_res_name = f"dpfppc_run{sim_model_path.stem}_K{K}.pkl"
-            try:
-                with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
-                    Z_hat_joint, Z_trans, block_probs = pickle.load(f)
-                Z_hat_joint, Z_trans, block_probs = utils.clean_dsbmm_res(
-                    Q, Z_hat_joint, Z_trans, block_probs=block_probs
-                )
-                Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
-                    Q, Z_hat_joint, Z_trans
-                )
-                tqdm.write("Loaded DSBMM results for given config")
-            except (FileNotFoundError, AssertionError):
-                # only run if not already done
-                tqdm.write("Running DSBMM")
+            # try:
+            #     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
+            #         Z_hat_joint, Z_trans, block_probs = pickle.load(f)
+            #     Z_hat_joint, Z_trans, block_probs = utils.clean_dsbmm_res(
+            #         Q, Z_hat_joint, Z_trans, block_probs=block_probs
+            #     )
+            #     Z_hat_joint, Z_trans = utils.verify_dsbmm_results(
+            #         Q, Z_hat_joint, Z_trans
+            #     )
+            #     tqdm.write("Loaded DSBMM results for given config")
+            # except (FileNotFoundError, AssertionError):
+            # only run if not already done
+            tqdm.write("Running DSBMM")
 
-                Z_hat_joint, Z_trans, block_probs = utils.run_dsbmm(
-                    dsbmm_data,
-                    dsbmm_datadir,
-                    Q,
-                    ignore_meta=False,
-                    datetime_str=dsbmm_res_str,
-                    deg_corr=True,
-                    directed=True,
-                    ret_block_probs=True,
-                )
-                with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
-                    pickle.dump((Z_hat_joint, Z_trans, block_probs), f)
+            Z_hat_joint, Z_trans, block_probs = utils.run_dsbmm(
+                dsbmm_data,
+                dsbmm_datadir,
+                Q,
+                ignore_meta=False,
+                datetime_str=dsbmm_res_str,
+                deg_corr=True,
+                directed=True,
+                ret_block_probs=True,
+            )
+            with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
+                pickle.dump((Z_hat_joint, Z_trans, block_probs), f)
 
-            try:
-                with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                    W_hat, Theta_hat = pickle.load(f)
-                assert W_hat.shape[-1] == K
-                tqdm.write("Loaded dPF results for given config")
-            except (FileNotFoundError, AssertionError):
-                tqdm.write("Running dPF")
-                W_hat, Theta_hat = utils.run_dpf(
-                    dpf_repo_dir,
-                    dpf_results_dir,
-                    dpf_settings,
-                    idx_map_dir=dpf_subdir,
-                    true_N=N,
-                    true_M=M,
-                )
-                with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                    pickle.dump((W_hat, Theta_hat), f)
+            # try:
+            #     with open(dpf_results_dir / dpf_res_name, "rb") as f:
+            #         W_hat, Theta_hat = pickle.load(f)
+            #     assert W_hat.shape[-1] == K
+            #     tqdm.write("Loaded dPF results for given config")
+            # except (FileNotFoundError, AssertionError):
+            tqdm.write("Running dPF")
+            W_hat, Theta_hat = utils.run_dpf(
+                dpf_repo_dir,
+                dpf_results_dir,
+                dpf_settings,
+                idx_map_dir=dpf_subdir,
+                true_N=N,
+                true_M=M,
+            )
+            with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                pickle.dump((W_hat, Theta_hat), f)
 
             replicates = 100
             A_predictive_score = np.zeros(T - 1)
