@@ -13,7 +13,7 @@ do
     while ((${num_jobs@P}>=$num_procs)); do
         wait -n
     done
-    python ${MAIN_CODE_DIR}/citation/predictive_checks.py \
+    python ${MAIN_CODE_DIR}/citation/predictive_check.py \
     --data-dir ${IN_DIR} \
     --out-dir ${OUT_DIR} \
     --seed ${SIM_ITER} &
