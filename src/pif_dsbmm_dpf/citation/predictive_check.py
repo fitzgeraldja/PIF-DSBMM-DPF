@@ -118,7 +118,7 @@ def calculate_ppc_dsbmm(
         tqdm.write(f"Warning: z_hat shape doesn't match N")
         diff = node_probs.shape[0] - heldout_idxs[0][0].shape[0]
         if diff > 0:
-            prop_diff = diff / heldout_idxs[0][0].shape[0].shape[0]
+            prop_diff = diff / heldout_idxs[0][0].shape[0]
             if prop_diff < 2e-2:
                 tqdm.write(
                     f"prop diff is only {prop_diff:.2e}, so probably ok: will add random"
