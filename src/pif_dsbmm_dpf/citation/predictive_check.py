@@ -369,6 +369,8 @@ def main():
         for t in range(T - 1):
             A_train[t][masked_friends[t]] = 0
             Y_past_train[t][past_masked_topics[t]] = 0
+            A_train[t].eliminate_zeros()
+            Y_past_train[t].eliminate_zeros()
 
         for k_idx, (Q, K) in enumerate(zip(Qs, Ks)):
             # change to train versions!
