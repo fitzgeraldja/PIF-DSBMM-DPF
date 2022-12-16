@@ -296,19 +296,18 @@ def main():
     noise = 10.0
     conf_strength = 50.0
     window_len = 3
-
     T = 5
-    a_score = np.zeros((num_exps, len(Ks), T - 1))
-    x_score = np.zeros((num_exps, len(Ks), T - 1))
-    x_auc = np.zeros((num_exps, len(Ks), T - 1))
-    # for ct in tqdm(confounding_type, desc="Confounding type", position=0):
-    #     for (noise, confounding) in tqdm(
-    #         confounding_configs, desc="Confounding configs", position=1, leave=False
-    #     ):
+
     if seed is not None:
         exps = [seed]
+        a_score = np.zeros((len(Ks), T - 1))
+        x_score = np.zeros((len(Ks), T - 1))
+        x_auc = np.zeros((len(Ks), T - 1))
     else:
         num_exps = 20
+        a_score = np.zeros((num_exps, len(Ks), T - 1))
+        x_score = np.zeros((num_exps, len(Ks), T - 1))
+        x_auc = np.zeros((num_exps, len(Ks), T - 1))
         exps = np.arange(num_exps, dtype=int)
 
     for exp_idx in exps:
@@ -510,20 +509,34 @@ def main():
                 )
                 A_predictive_score[A_logll_replicated > A_logll_heldout] += 1.0
                 YP_pred_score[Y_logll_replicated > Y_logll_heldout] += 1.0
-
-            a_score[exp_idx][k_idx] = A_predictive_score / replicates
-            x_score[exp_idx][k_idx] = YP_pred_score / replicates
-            x_auc[exp_idx][k_idx] = evaluate_random_subset_dpf(
-                past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="auc"
-            )
-            # save results each iteration, so don't lose everything
-            # if something goes wrong
-            with open(outdir / "dsbmm_ppc_results.pkl", "wb") as f:
-                pickle.dump(a_score, f)
-            with open(outdir / "dpf_ppc_results.pkl", "wb") as f:
-                pickle.dump(x_score, f)
-            with open(outdir / "dpf_auc_results.pkl", "wb") as f:
-                pickle.dump(x_auc, f)
+            if seed is None:
+                a_score[exp_idx][k_idx] = A_predictive_score / replicates
+                x_score[exp_idx][k_idx] = YP_pred_score / replicates
+                x_auc[exp_idx][k_idx] = evaluate_random_subset_dpf(
+                    past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="auc"
+                )
+                # save results each iteration, so don't lose everything
+                # if something goes wrong
+                with open(outdir / "dsbmm_ppc_results.pkl", "wb") as f:
+                    pickle.dump(a_score, f)
+                with open(outdir / "dpf_ppc_results.pkl", "wb") as f:
+                    pickle.dump(x_score, f)
+                with open(outdir / "dpf_auc_results.pkl", "wb") as f:
+                    pickle.dump(x_auc, f)
+            else:
+                a_score[k_idx] = A_predictive_score / replicates
+                x_score[k_idx] = YP_pred_score / replicates
+                x_auc[k_idx] = evaluate_random_subset_dpf(
+                    past_masked_topics, Y[:-1], Theta_hat, W_hat, metric="auc"
+                )
+                # save results each iteration, so don't lose everything
+                # if something goes wrong
+                with open(outdir / f"dsbmm_ppc_results_sim{exp_idx}.pkl", "wb") as f:
+                    pickle.dump(a_score, f)
+                with open(outdir / f"dpf_ppc_results_sim{exp_idx}.pkl", "wb") as f:
+                    pickle.dump(x_score, f)
+                with open(outdir / f"dpf_auc_results_sim{exp_idx}.pkl", "wb") as f:
+                    pickle.dump(x_auc, f)
 
     print("A ppc scores across choices of num components:", a_score.mean(axis=0))
     print("X ppc scores across choices of num components:", x_score.mean(axis=0))
