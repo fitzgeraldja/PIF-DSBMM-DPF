@@ -291,7 +291,6 @@ def mask_topics(samp_size, n_cats):
 
 
 def main():
-    num_exps = 20
     Qs = [4, 9, 16]
     Ks = [5, 8, 10]
     noise = 10.0
@@ -306,7 +305,13 @@ def main():
     #     for (noise, confounding) in tqdm(
     #         confounding_configs, desc="Confounding configs", position=1, leave=False
     #     ):
-    for exp_idx in range(num_exps):
+    if seed is not None:
+        exps = [seed]
+    else:
+        num_exps = 20
+        exps = np.arange(num_exps, dtype=int)
+
+    for exp_idx in exps:
         print("Working on experiment", exp_idx)
         sim_model_path = datadir / f"sim_model_{exp_idx}.pkl"
         try:
@@ -389,7 +394,7 @@ def main():
                 "-dir": str(dpf_subdir),
                 "-rfreq": 1,  # check ll every iteration -- want to stop asap
                 "-vprior": 10,  # prior on variance for transitions
-                "-num_threads": 64,  # number of threads to use
+                "-num_threads": 8,  # number of threads to use
                 "-tpl": window_len,  # gap between time periods
                 # -- assume passing time in years, so this
                 # is window length in years
@@ -533,8 +538,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--out-dir", type=str, default="/scratch/fitzgeraldj/data/caus_inf_data/results"
     )
+    parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
     datadir = Path(args.data_dir)
     outdir = Path(args.out_dir)
     main_code_dir = Path("~/Documents/main_project/post_confirmation/code").expanduser()
+    seed = args.seed
     main()
