@@ -1,10 +1,14 @@
 \begin{tabular}{lllllll}
 \toprule
-{} &              HOL &            AUC & $\langle\beta^1\rangle$ & $\langle\beta^2\rangle$ & $\langle\beta^3\rangle$ & $\langle\beta^4\rangle$ \\
-           &                  &                &                         &                         &                         &                         \\
+{} &              HOL &             AUC & $\langle\beta^1\rangle$ & $\langle\beta^2\rangle$ & $\langle\beta^3\rangle$ & $\langle\beta^4\rangle$ \\
+                         &                  &                 &                         &                         &                         &                         \\
 \midrule
-Unadjusted &  \textbf{-16.91} &           0.89 &                    0.08 &                    0.06 &                    0.05 &                    0.03 \\
-Topic-Only &           -16.93 &           0.89 &                    0.09 &                    0.07 &                    0.05 &                    0.03 \\
-Ours       &           -20.29 &  \textbf{0.93} &                    0.07 &                    0.05 &                    0.04 &                    0.03 \\
+Unadjusted               &           -16.91 &           0.888 &                    0.08 &                   0.059 &                   0.045 &                    0.03 \\
+Network-Only             &           -16.76 &           0.888 &                   0.071 &                    0.05 &                   0.038 &                   0.027 \\
+Topic-Only               &           -16.93 &           0.888 &                   0.089 &                   0.069 &                   0.049 &                   0.031 \\
+Ours                     &           -20.29 &           0.927 &                   0.071 &                   0.051 &                   0.038 &                   0.027 \\
+Ours-NDC                 &  \textbf{-12.33} &  \textbf{0.934} &                   0.074 &                   0.053 &                   0.039 &                   0.027 \\
+Ours (no meta)           &           -20.28 &            0.93 &                   0.072 &                   0.052 &                   0.039 &                   0.027 \\
+Ours (concat w $\theta$) &           -20.28 &           0.931 &                   0.067 &                   0.049 &                   0.038 &                   0.027 \\
 \bottomrule
 \end{tabular}
