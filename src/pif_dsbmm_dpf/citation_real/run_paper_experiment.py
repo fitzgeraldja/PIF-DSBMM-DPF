@@ -591,6 +591,11 @@ def main(argv):
                     W_hat = W_hat[:, 1:, :]
                 else:
                     W_hat = W_hat[:, :-1, :]
+                if variant in ["z-theta-concat", "theta-only"]:
+                    if try_pres_subs:
+                        Theta_hat = Theta_hat[:, 1:, :]
+                    else:
+                        Theta_hat = Theta_hat[:, :-1, :]
 
             if variant == "z-only":
                 Rho_hat[:, :, :Q] = Z_hat
