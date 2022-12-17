@@ -17,7 +17,7 @@ from pif_dsbmm_dpf.citation import utils
 from pif_dsbmm_dpf.citation.process_dataset import CitationSimulator
 
 
-def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta, overall=False):
+def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta, take_exp=False, overall=False):
     r"""Compute the predictive probability of the heldout topics.
     Should be applied separately for network confounder and
     topic confounder models -- the likelihood of each are
@@ -42,13 +42,20 @@ def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta, overall=False):
     :type theta: np.ndarray
     :param beta: topic factors inferred by dPF, shape (M,T,K)
     :type beta: np.ndarray
+    :param take_exp: take exp of theta and beta, defaults to False
+    :type take_exp: bool, optional
     :param overall: use overall version, i.e. don't return calc at each timestep,
                     defaults to False
     :type overall: bool, optional
     :return: logll_heldout, logll_replicated
     :rtype: tuple(float, float)
     """
-    expbeta, exptheta = np.exp(beta), np.exp(theta)
+    if take_exp:
+        # depending on implementation, may need to take exp of
+        # theta and beta before calculating rates
+        expbeta, exptheta = np.exp(beta), np.exp(theta)
+    else:
+        expbeta, exptheta = beta, theta
     # comb_idxs = (
     #     np.concatenate([x[0] for x in heldout_idxs]),
     #     np.concatenate([x[1] for x in heldout_idxs]),
@@ -217,7 +224,7 @@ def calculate_ppc_dsbmm(
 
 
 def evaluate_random_subset_dpf(
-    heldout_idxs, obs_y, theta, beta, overall=False, metric="logll"
+    heldout_idxs, obs_y, theta, beta, overall=False, take_exp=False, metric="logll"
 ):
     """Only calc AUC for dPF, and on same heldout au-topic pairs as
     before so might as well just pass expected values in, but leave this
@@ -235,10 +242,19 @@ def evaluate_random_subset_dpf(
     :param overall: use overall version, i.e. don't return calc at each timestep,
                     defaults to False
     :type overall: bool, optional
+    :param take_exp: take exp of theta and beta, defaults to False
+    :type take_exp: bool, optional
+    :param metric: metric to use, defaults to "logll"
+    :type metric: str, optional
     :return: score
     :rtype: float
     """
-    expbeta, exptheta = np.exp(beta), np.exp(theta)
+    if take_exp:
+        # depending on implementation, should either first take exp,
+        # or this has already been done
+        expbeta, exptheta = np.exp(beta), np.exp(theta)
+    else:
+        expbeta, exptheta = beta, theta
     subtheta = [
         exptheta[h_idx[0], t * np.ones(len(h_idx[0]), dtype=int), :]
         for t, h_idx in enumerate(heldout_idxs)
