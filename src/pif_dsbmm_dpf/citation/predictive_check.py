@@ -475,23 +475,23 @@ def main():
                 with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
                     pickle.dump((Z_hat_joint, Z_trans, block_probs), f)
 
-            try:
-                with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                    W_hat, Theta_hat = pickle.load(f)
-                assert W_hat.shape[-1] == K
-                tqdm.write("Loaded dPF results for given config")
-            except (FileNotFoundError, AssertionError):
-                tqdm.write("Running dPF")
-                W_hat, Theta_hat = utils.run_dpf(
-                    dpf_repo_dir,
-                    dpf_results_dir,
-                    dpf_settings,
-                    idx_map_dir=dpf_subdir,
-                    true_N=N,
-                    true_M=M,
-                )
-                with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                    pickle.dump((W_hat, Theta_hat), f)
+            # try:
+            #     with open(dpf_results_dir / dpf_res_name, "rb") as f:
+            #         W_hat, Theta_hat = pickle.load(f)
+            #     assert W_hat.shape[-1] == K
+            #     tqdm.write("Loaded dPF results for given config")
+            # except (FileNotFoundError, AssertionError):
+            tqdm.write("Running dPF")
+            W_hat, Theta_hat = utils.run_dpf(
+                dpf_repo_dir,
+                dpf_results_dir,
+                dpf_settings,
+                idx_map_dir=dpf_subdir,
+                true_N=N,
+                true_M=M,
+            )
+            with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                pickle.dump((W_hat, Theta_hat), f)
 
             replicates = 100
             A_predictive_score = np.zeros(T - 1)
