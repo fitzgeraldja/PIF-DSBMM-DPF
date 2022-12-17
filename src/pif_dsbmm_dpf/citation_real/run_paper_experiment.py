@@ -640,7 +640,7 @@ def main(argv):
     # if model == 'spf':
     # 	Z_hat = m.E_alpha
 
-    if model == "dsbmm_dpf":
+    if model == "dsbmm_dpf" and variant == "z-theta-joint":
         Z_hat = Z_hat_joint
 
     np.savez_compressed(
