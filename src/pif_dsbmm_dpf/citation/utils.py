@@ -336,28 +336,28 @@ def gen_dpf_data(
     subdir.mkdir(exist_ok=True)
     end_names = ["train.tsv", "validation.tsv", "test.tsv"]
     sub_fnames = list(map(lambda x: subdir / x, end_names))
-    # try:
-    #     dpf_train, dpf_val, dpf_test = map(
-    #         lambda fname: pd.read_csv(
-    #             fname,
-    #             sep="\t",
-    #             header=None,
-    #             names=["auid_idx", "tpc_idx", "count", "windowed_year"],
-    #         ),
-    #         sub_fnames,
-    #     )
-    # except FileNotFoundError:
-    tqdm.write(f"No preexisting dpf subset data found for {subdir_str}")
-    tqdm.write("Generating...")
-    if sim_tpcs is None:
-        dpf_train, dpf_val, dpf_test = gen_subset_dpf(
-            dpf_datadir, subset_idxs, subdir, window_len=window_len
+    try:
+        dpf_train, dpf_val, dpf_test = map(
+            lambda fname: pd.read_csv(
+                fname,
+                sep="\t",
+                header=None,
+                names=["auid_idx", "tpc_idx", "count", "windowed_year"],
+            ),
+            sub_fnames,
         )
-    else:
-        dpf_train, dpf_val, dpf_test = convert_to_dpf_format(
-            sim_tpcs, subdir, window_len=window_len, split_test=split_test
-        )
-    tqdm.write("Done.")
+    except FileNotFoundError:
+        tqdm.write(f"No preexisting dpf subset data found for {subdir_str}")
+        tqdm.write("Generating...")
+        if sim_tpcs is None:
+            dpf_train, dpf_val, dpf_test = gen_subset_dpf(
+                dpf_datadir, subset_idxs, subdir, window_len=window_len
+            )
+        else:
+            dpf_train, dpf_val, dpf_test = convert_to_dpf_format(
+                sim_tpcs, subdir, window_len=window_len, split_test=split_test
+            )
+        tqdm.write("Done.")
     tqdm.write(
         f"In dPF data, train, val, test contain {len(dpf_train)}, {len(dpf_val)}, {len(dpf_test)} records resp."
     )
