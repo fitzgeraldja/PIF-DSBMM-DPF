@@ -451,23 +451,23 @@ def main(argv):
                         pickle.dump((Z_hat_joint, Z_trans, block_probs), f)
                 # now run dPF - likewise have set seed so should
                 # be identical between runs
-                # try:
-                #     with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                #         W_hat, Theta_hat = pickle.load(f)
-                #     assert W_hat.shape[-1] == K
-                #     tqdm.write("Loaded dPF results for given config")
-                # except (FileNotFoundError, AssertionError):
-                tqdm.write("Running dPF")
-                W_hat, Theta_hat = utils.run_dpf(
-                    dpf_repo_dir,
-                    dpf_results_dir,
-                    dpf_settings,
-                    idx_map_dir=dpf_subdir,
-                    true_N=N,
-                    true_M=M,
-                )
-                with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                    pickle.dump((W_hat, Theta_hat), f)
+                try:
+                    with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                        W_hat, Theta_hat = pickle.load(f)
+                    assert W_hat.shape[-1] == K
+                    tqdm.write("Loaded dPF results for given config")
+                except (FileNotFoundError, AssertionError):
+                    tqdm.write("Running dPF")
+                    W_hat, Theta_hat = utils.run_dpf(
+                        dpf_repo_dir,
+                        dpf_results_dir,
+                        dpf_settings,
+                        idx_map_dir=dpf_subdir,
+                        true_N=N,
+                        true_M=M,
+                    )
+                    with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                        pickle.dump((W_hat, Theta_hat), f)
 
             elif variant == "theta-only":
                 # 'theta-only' is just dPF, but aiming
@@ -517,23 +517,23 @@ def main(argv):
                     )
                     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
                         pickle.dump((Z_hat, Z_trans, block_probs), f)
-                # try:
-                #     with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                #         W_hat, Theta_hat = pickle.load(f)
-                #     assert W_hat.shape[-1] == K
-                #     tqdm.write("Loaded dPF results for given config")
-                # except (FileNotFoundError, AssertionError):
-                tqdm.write("Running dPF")
-                W_hat, Theta_hat = utils.run_dpf(
-                    dpf_repo_dir,
-                    dpf_results_dir,
-                    dpf_settings,
-                    idx_map_dir=dpf_subdir,
-                    true_N=N,
-                    true_M=M,
-                )
-                with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                    pickle.dump((W_hat, Theta_hat), f)
+                try:
+                    with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                        W_hat, Theta_hat = pickle.load(f)
+                    assert W_hat.shape[-1] == K
+                    tqdm.write("Loaded dPF results for given config")
+                except (FileNotFoundError, AssertionError):
+                    tqdm.write("Running dPF")
+                    W_hat, Theta_hat = utils.run_dpf(
+                        dpf_repo_dir,
+                        dpf_results_dir,
+                        dpf_settings,
+                        idx_map_dir=dpf_subdir,
+                        true_N=N,
+                        true_M=M,
+                    )
+                    with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                        pickle.dump((W_hat, Theta_hat), f)
             else:
                 # 'z-only' is just DSBM (no meta)
                 try:
@@ -562,23 +562,23 @@ def main(argv):
                     )
                     with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "wb") as f:
                         pickle.dump((Z_hat, Z_trans, block_probs), f)
-                try:
-                    with open(dpf_results_dir / dpf_res_name, "rb") as f:
-                        W_hat, Theta_hat = pickle.load(f)
-                    assert W_hat.shape[-1] == K
-                    tqdm.write("Loaded dPF results for given config")
-                except (FileNotFoundError, AssertionError):
-                    tqdm.write("Running dPF")
-                    W_hat, Theta_hat = utils.run_dpf(
-                        dpf_repo_dir,
-                        dpf_results_dir,
-                        dpf_settings,
-                        idx_map_dir=dpf_subdir,
-                        true_N=N,
-                        true_M=M,
-                    )
-                    with open(dpf_results_dir / dpf_res_name, "wb") as f:
-                        pickle.dump((W_hat, Theta_hat), f)
+                # try:
+                #     with open(dpf_results_dir / dpf_res_name, "rb") as f:
+                #         W_hat, Theta_hat = pickle.load(f)
+                #     assert W_hat.shape[-1] == K
+                #     tqdm.write("Loaded dPF results for given config")
+                # except (FileNotFoundError, AssertionError):
+                tqdm.write("Running dPF")
+                W_hat, Theta_hat = utils.run_dpf(
+                    dpf_repo_dir,
+                    dpf_results_dir,
+                    dpf_settings,
+                    idx_map_dir=dpf_subdir,
+                    true_N=N,
+                    true_M=M,
+                )
+                with open(dpf_results_dir / dpf_res_name, "wb") as f:
+                    pickle.dump((W_hat, Theta_hat), f)
 
             Rho_hat = np.zeros((N, T - 1, Q + K))
             if Z_hat.shape[1] == T:
