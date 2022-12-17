@@ -325,7 +325,7 @@ def main(argv):
                 with open(dsbmm_datadir / f"{dsbmm_res_str}_subs.pkl", "rb") as f:
                     Z_hat, Z_trans, block_probs = pickle.load(f)
                 Z_hat, Z_trans, block_probs = utils.clean_dsbmm_res(
-                    Q, Z_hat_joint, Z_trans, block_probs=block_probs
+                    Q, Z_hat, Z_trans, block_probs=block_probs
                 )
                 Z_hat, Z_trans = utils.verify_dsbmm_results(Q, Z_hat, Z_trans)
                 tqdm.write("Loaded DSBMM results for given config")
