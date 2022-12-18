@@ -495,6 +495,7 @@ def main():
                 with open(dpf_results_dir / dpf_res_name, "rb") as f:
                     W_hat, Theta_hat = pickle.load(f)
                 assert W_hat.shape[-1] == K
+                assert W_hat.shape[1] == T - 1
                 tqdm.write("Loaded dPF results for given config")
             except (FileNotFoundError, AssertionError):
                 tqdm.write("Running dPF")
