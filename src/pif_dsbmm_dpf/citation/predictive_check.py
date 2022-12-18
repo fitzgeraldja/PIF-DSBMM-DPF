@@ -61,10 +61,17 @@ def calculate_ppc_dpf(heldout_idxs, obs_y, theta, beta, take_exp=False, overall=
     #     np.concatenate([x[1] for x in heldout_idxs]),
     #     np.concatenate([t * np.ones(len(x[0])) for t, x in enumerate(heldout_idxs)]),
     # )
-    subtheta = [
-        exptheta[h_idx[0], t * np.ones(len(h_idx[0]), dtype=int), :]
-        for t, h_idx in enumerate(heldout_idxs)
-    ]
+    try:
+        subtheta = [
+            exptheta[h_idx[0], t * np.ones(len(h_idx[0]), dtype=int), :]
+            for t, h_idx in enumerate(heldout_idxs)
+        ]
+    except IndexError:
+        print(f"T from idxs is {len(heldout_idxs)}")
+        print(f"N from idxs is {heldout_idxs[0][0].shape}")
+        print(f"but theta shape is {exptheta.shape}")
+        raise ValueError("Problem with indexing theta")
+
     subbeta = [
         expbeta[h_idx[1], t * np.ones(len(h_idx[1]), dtype=int), :]
         for t, h_idx in enumerate(heldout_idxs)
