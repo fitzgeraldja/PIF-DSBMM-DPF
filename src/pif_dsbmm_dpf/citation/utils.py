@@ -348,6 +348,9 @@ def gen_dpf_data(
         )
         if (not split_test) and (sim_tpcs is not None):
             assert len(dpf_train.windowed_year.unique()) == len(sim_tpcs)
+            tqdm.write(
+                "Verified that train data has same number of windows as sim_tpcs"
+            )
     except (FileNotFoundError, AssertionError):
         tqdm.write(f"No preexisting dpf subset data found for {subdir_str}")
         tqdm.write("Generating...")
